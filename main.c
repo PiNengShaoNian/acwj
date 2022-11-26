@@ -40,6 +40,7 @@ static void usage(char *prog) {
 
 void main(int argc, char *argv[])
 {
+    struct ASTnode *n;
     if(argc != 2) {
         usage(argv[0]);
     }
@@ -49,7 +50,9 @@ void main(int argc, char *argv[])
         fprintf(stderr, "Unable to open %s: %s\n", argv[1], strerror(errno));
         exit(0);
     }
-    
-    scanfile();
+
+    scan(&Token);
+    n = binexpr();
+    printf("%d\n", interpretAST(n));
     exit(0);
 }
