@@ -3,7 +3,7 @@
 
 // Given an AST, generate
 // assembly code recursively
-static int genAST(struct ASTnode *n)
+int genAST(struct ASTnode *n)
 {
     int leftreg, rightreg;
 
@@ -31,13 +31,22 @@ static int genAST(struct ASTnode *n)
     }
 }
 
-void generatecode(struct ASTnode *n)
+void genpreamble()
 {
-    int reg;
-
     cgpreamble();
-    reg = genAST(n);
-    cgprintint(reg); // Print the register with the result as an int
+}
+
+void genpostamble()
+{
     cgpostamble();
 }
 
+void genfreeregs()
+{
+    freeall_registers();
+}
+
+void genprintint(int reg)
+{
+    cgprintint(reg);
+}
