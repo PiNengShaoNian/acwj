@@ -5,16 +5,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "Mac OS LLDB",
-            "request": "launch",
-            "name": "Debug",
-            "program": "${workspaceFolder}/scheduler",
-            "args": ["3", "disk.in0", "disk.in1", "disk.in2", "disk.in3", "disk.in4"],
-            "cwd": "${workspaceFolder}",
-            "preRunCommands" : ["process handle -s false -n false -p true SIGUSR1"],
-            "stdio" : [null, null, null]           
-        },
-        {
             "name": "Linux GDB",
             "type": "cppdbg",
             "request": "launch",
