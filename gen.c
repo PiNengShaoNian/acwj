@@ -1,20 +1,29 @@
 #include "defs.h"
+#include "data.h"
 #include "decl.h"
 
 // Given an AST, generate
 // assembly code recursively
-int genAST(struct ASTnode *n)
+int genAST(struct ASTnode *n, int reg)
 {
     int leftreg, rightreg;
 
     // Get the left and right sub-tree values
     if (n->left)
-        leftreg = genAST(n->left);
+        leftreg = genAST(n->left, -1);
     if (n->right)
-        rightreg = genAST(n->right);
+        rightreg = genAST(n->right, leftreg);
 
     switch (n->op)
     {
+    case A_INTLIT:
+        return cgloadint(n->v.intvalue);
+    case A_IDENT:
+        return cgloadglob(Gsym[n->v.id].name);
+    case A_LVIDENT:
+        return cgstorglob(reg, Gsym[n->v.id].name);
+    case A_ASSIGN:
+        return rightreg;
     case A_ADD:
         return cgadd(leftreg, rightreg);
     case A_SUBTRACT:
@@ -23,11 +32,8 @@ int genAST(struct ASTnode *n)
         return cgmul(leftreg, rightreg);
     case A_DIVIDE:
         return cgdiv(leftreg, rightreg);
-    case A_INTLIT:
-        return cgload(n->intvalue);
     default:
-        fprintf(stderr, "Unknown AST operator %d\n", n->op);
-        exit(1);
+        fatald("Unknown AST operator", n->op);
     }
 }
 
@@ -49,4 +55,8 @@ void genfreeregs()
 void genprintint(int reg)
 {
     cgprintint(reg);
+}
+
+void genglobsym(char *s) {
+    cgglobsym(s);
 }
