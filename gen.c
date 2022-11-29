@@ -32,6 +32,18 @@ int genAST(struct ASTnode *n, int reg)
         return cgmul(leftreg, rightreg);
     case A_DIVIDE:
         return cgdiv(leftreg, rightreg);
+    case A_EQ:
+        return cgequal(leftreg, rightreg);
+    case A_NE:
+        return cgnotequal(leftreg, rightreg);
+    case A_LT:
+        return cglessthan(leftreg, rightreg);
+    case A_GT:
+        return cggreaterthan(leftreg, rightreg);
+    case A_LE:
+        return cglessequal(leftreg, rightreg);
+    case A_GE:
+        return cggreaterequal(leftreg, rightreg);
     default:
         fatald("Unknown AST operator", n->op);
     }
@@ -57,6 +69,7 @@ void genprintint(int reg)
     cgprintint(reg);
 }
 
-void genglobsym(char *s) {
+void genglobsym(char *s)
+{
     cgglobsym(s);
 }

@@ -47,3 +47,9 @@ void fatald(char *s, int d)
     fprintf(stderr, "%s:%d on line %d\n", s, d, Line);
     exit(1);
 }
+
+void fatalc(char *s, int c)
+{
+    fprintf(stderr, "%s:%c on line %d\n", s, c, Line);
+    exit(1);
+}

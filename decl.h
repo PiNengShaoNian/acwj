@@ -30,6 +30,12 @@ int cgdiv(int r1, int r2);
 void cgprintint(int r);
 int cgstorglob(int r, char *identifier);
 void cgglobsym(char *sym);
+int cgequal(int r1, int r2);
+int cgnotequal(int r1, int r2);
+int cglessthan(int r1, int r2);
+int cggreaterthan(int r1, int r2);
+int cglessequal(int r1, int r2);
+int cggreaterequal(int r1, int r2);
 
 // expr.c
 struct ASTnode *binexpr(int rbp);
@@ -44,6 +50,7 @@ void ident(void);
 void fatal(char *s);
 void fatals(char *s1, char *s2);
 void fatald(char *s, int d);
+void fatalc(char *s, int c);
 
 // sym.c
 int findglob(char *s);
