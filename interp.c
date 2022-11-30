@@ -36,7 +36,7 @@ int interpretAST(struct ASTnode *n)
     case A_DIVIDE:
         return (leftval / rightval);
     case A_INTLIT:
-        return (n->intvalue);
+        return (n->v.intvalue);
     default:
         fprintf(stderr, "Unknown AST operator %d\n", n->op);
         exit(1);

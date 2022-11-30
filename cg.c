@@ -1,11 +1,12 @@
 #include "defs.h"
 #include "data.h"
+#include "decl.h"
 
 // List of available registers
 // and their names
 static int freereg[4];
 static char *reglist[4] = {"%r8", "%r9", "%r10", "%r11"};
-static char *breglist[4] = { "%r8b", "%r9b", "%r10b", "%r11b" };
+static char *breglist[4] = {"%r8b", "%r9b", "%r10b", "%r11b"};
 
 // Set all registers as available
 void freeall_registers(void)
@@ -173,32 +174,49 @@ static int cgcompare(int r1, int r2, char *how)
     return r2;
 }
 
-int cgequal(int r1, int r2)
+// List of comparison instructions,
+// in AST order: A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE
+static char *cmplist[] = {"sete", "setne", "setl", "setg", "setle", "setge"};
+
+// Compare two registers and set if true.
+int cgcompare_and_set(int ASTop, int r1, int r2)
 {
-    return cgcompare(r1, r2, "sete");
+    // Check the range of the AST operation.
+    if (ASTop < A_EQ || ASTop > A_GE)
+        fatal("Bad ASTop in cgcompare_and_set()");
+
+    fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+    fprintf(Outfile, "\t%s\t%s\n", cmplist[ASTop - A_EQ], breglist[r2]);
+    fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r2], reglist[r2]);
+    free_register(r1);
+    return (r2);
 }
 
-int cgnotequal(int r1, int r2)
+// Generate a label
+void cglabel(int l)
 {
-    return cgcompare(r1, r2, "setne");
+    fprintf(Outfile, "L%d:\n", l);
 }
 
-int cglessthan(int r1, int r2)
+// Generate a jump to a label
+void cgjump(int l)
 {
-    return cgcompare(r1, r2, "setl");
+    fprintf(Outfile, "\tjmp\tL%d\n", l);
 }
 
-int cggreaterthan(int r1, int r2)
-{
-    return cgcompare(r1, r2, "setg");
-}
+// List of inverted jump instructions,
+// in AST order: A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE
+static char *invcmplist[] = {"jne", "je", "jge", "jle", "jg", "jl"};
 
-int cglessequal(int r1, int r2)
+// Compare two registers and jump if false.
+int cgcompare_and_jump(int ASTop, int r1, int r2, int label)
 {
-    return cgcompare(r1, r2, "setle");
-}
+    // Check the range of the AST operation
+    if (ASTop < A_EQ || ASTop > A_GE)
+        fatal("Bad ASTop in cgcompare_and_set()");
 
-int cggreaterequal(int r1, int r2)
-{
-    return cgcompare(r1, r2, "setge");
+    fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+    fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
+    freeall_registers();
+    return NOREG;
 }
