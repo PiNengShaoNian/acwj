@@ -77,6 +77,10 @@ static int keyword(char *s)
         if (!strcmp(s, "else"))
             return T_ELSE;
         break;
+    case 'w':
+        if (!strcmp(s, "while"))
+            return T_WHILE;
+        break;
     }
 
     return 0;

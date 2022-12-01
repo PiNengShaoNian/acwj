@@ -36,7 +36,8 @@ enum
     T_PRINT,
     T_INT,
     T_IF,
-    T_ELSE
+    T_ELSE,
+    T_WHILE
 };
 
 // AST node types
@@ -58,7 +59,8 @@ enum
     A_ASSIGN,
     A_PRINT,
     A_GLUE,
-    A_IF
+    A_IF,
+    A_WHILE
 };
 
 // Abstract Syntax Tree structure

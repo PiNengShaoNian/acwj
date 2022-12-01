@@ -60,10 +60,7 @@ static int op_precedence(int tokentype)
 {
     int prec = OpPrec[tokentype];
     if (prec == 0)
-    {
-        fprintf(stderr, "syntax error on line %d, token %d\n", Line, tokentype);
-        exit(1);
-    }
+        fatald("Syntax error, token", tokentype);
     return prec;
 }
 
@@ -80,7 +77,7 @@ struct ASTnode *binexpr(int ptp)
 
     // If we hit a semicolon, return just the left node
     tokentype = Token.token;
-    if (tokentype == T_SEMI)
+    if (tokentype == T_SEMI || tokentype == T_RPAREN)
         return left;
 
     // While the precedence of this token is
@@ -101,7 +98,7 @@ struct ASTnode *binexpr(int ptp)
         // Update the details of the current token.
         // If we hit a semicolon, return just the left node
         tokentype = Token.token;
-        if (tokentype == T_SEMI)
+        if (tokentype == T_SEMI || tokentype == T_RPAREN)
             return left;
     }
 
