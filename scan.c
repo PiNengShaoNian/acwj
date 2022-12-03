@@ -88,6 +88,10 @@ static int keyword(char *s)
         if (!strcmp(s, "void"))
             return T_VOID;
         break;
+    case 'c':
+        if (!strcmp(s, "char"))
+            return T_CHAR;
+        break;
     }
 
     return 0;

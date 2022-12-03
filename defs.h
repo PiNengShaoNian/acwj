@@ -39,7 +39,8 @@ enum
     T_ELSE,
     T_WHILE,
     T_FOR,
-    T_VOID
+    T_VOID,
+    T_CHAR
 };
 
 // AST node types
@@ -63,13 +64,24 @@ enum
     A_GLUE,
     A_IF,
     A_WHILE,
-    A_FUNCTION
+    A_FUNCTION,
+    A_WIDEN
+};
+
+// Primitive types
+enum
+{
+    P_NONE,
+    P_VOID,
+    P_CHAR,
+    P_INT
 };
 
 // Abstract Syntax Tree structure
 struct ASTnode
 {
     int op;               // "Operation" to be performed on this tree
+    int type;             // Type of any expression this tree generates
     struct ASTnode *left; // Left, middle and right child trees
     struct ASTnode *mid;
     struct ASTnode *right;
@@ -80,10 +92,19 @@ struct ASTnode
     } v;
 };
 
+// Structural types
+enum
+{
+    S_VARIABLE,
+    S_FUNCTION
+};
+
 // Symbol table structure
 struct symtable
 {
     char *name; // Name of a symbol
+    int type;   // Primitive type for the symbol
+    int stype;  // Structural type for the symbol
 };
 
 #define NOREG -1 // Use NOREG when the AST generation

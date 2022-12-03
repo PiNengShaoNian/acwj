@@ -8,7 +8,7 @@ int arithop(int tokentype)
 {
     if (tokentype > T_EOF && tokentype < T_INTLIT)
         return tokentype;
-    fatald("Syntax error, token", tokentype);
+    fatald("arithop: Syntax error, token", tokentype);
 }
 
 // Parse a primary factor and return an
@@ -18,13 +18,15 @@ static struct ASTnode *primary(void)
     struct ASTnode *n;
     int id;
 
-    // For an INTLIT token, make a leaf AST node for it
-    // and scan in the next token. Otherwise, a syntax error
-    // for any other token type.
     switch (Token.token)
     {
     case T_INTLIT:
-        n = mkastleaf(A_INTLIT, Token.intvalue);
+        // For an INTLIT token, make a leaf AST node for it
+        // Make it a P_CHAR if it's within the P_CHAR range.
+        if ((Token.intvalue >= 0) && (Token.intvalue < 256))
+            n = mkastleaf(A_INTLIT, P_CHAR, Token.intvalue);
+        else
+            n = mkastleaf(A_INTLIT, P_INT, Token.intvalue);
         break;
     case T_IDENT:
         // Check that this identifier exists
@@ -33,7 +35,7 @@ static struct ASTnode *primary(void)
             fatals("Unknown variable", Text);
 
         // Make a leaf AST node for it
-        n = mkastleaf(A_IDENT, id);
+        n = mkastleaf(A_IDENT, Gsym[id].type, id);
         break;
     default:
         fprintf(stderr, "syntax error on line %d\n", Line);
@@ -60,7 +62,7 @@ static int op_precedence(int tokentype)
 {
     int prec = OpPrec[tokentype];
     if (prec == 0)
-        fatald("Syntax error, token", tokentype);
+        fatald("op_precedence: Syntax error, token", tokentype);
     return prec;
 }
 
@@ -69,6 +71,7 @@ static int op_precedence(int tokentype)
 struct ASTnode *binexpr(int ptp)
 {
     struct ASTnode *left, *right;
+    int lefttype, righttype;
     int tokentype;
 
     // Get the integer literal on the left.
@@ -91,9 +94,21 @@ struct ASTnode *binexpr(int ptp)
         // precedence of cur token to build a sub-tree
         right = binexpr(OpPrec[tokentype]);
 
+        // Ensure the two types are compatible.
+        lefttype = left->type;
+        righttype = right->type;
+        if (!type_compatible(&lefttype, &righttype, 0))
+            fatal("Incompatible types");
+
+        // Widen either side if required. type vars  are A_WIDEN now
+        if (lefttype)
+            left = mkastunary(lefttype, right->type, left, 0);
+        if (righttype)
+            right = mkastunary(righttype, left->type, right, 0);
+
         // Join that sub-tree with ours. Convert the token
         // into an AST operation at the same time.
-        left = mkastnode(arithop(tokentype), left, NULL, right, 0);
+        left = mkastnode(arithop(tokentype), left->type, left, NULL, right, 0);
 
         // Update the details of the current token.
         // If we hit a semicolon, return just the left node
