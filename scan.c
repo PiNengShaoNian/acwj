@@ -84,6 +84,9 @@ static int keyword(char *s)
     case 'f':
         if (!strcmp(s, "for"))
             return T_FOR;
+    case 'v':
+        if (!strcmp(s, "void"))
+            return T_VOID;
         break;
     }
 
