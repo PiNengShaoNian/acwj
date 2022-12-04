@@ -2,6 +2,18 @@
 #include "data.h"
 #include "decl.h"
 
+// A pointer to a rejected token
+static struct token *Rejtoken = NULL;
+
+// Reject the token that we just scanned
+void reject_token(struct token *t)
+{
+    if (Rejtoken != NULL)
+        fatal("Can't reject token twice");
+
+    Rejtoken = t;
+}
+
 // Get the next character from the input file.
 static int next(void)
 {
@@ -91,6 +103,12 @@ static int keyword(char *s)
     case 'c':
         if (!strcmp(s, "char"))
             return T_CHAR;
+    case 'l':
+        if (!strcmp(s, "long"))
+            return T_LONG;
+    case 'r':
+        if (!strcmp(s, "return"))
+            return T_RETURN;
         break;
     }
 
@@ -150,6 +168,14 @@ static int scanint(int c)
 int scan(struct token *t)
 {
     int c, tokentype;
+
+    // If we have any rejected token, return it
+    if (Rejtoken != NULL)
+    {
+        t = Rejtoken;
+        Rejtoken = NULL;
+        return 1;
+    }
 
     // Skip whitespace
     c = skip();

@@ -1,4 +1,5 @@
 // scan.c
+void reject_token(struct token *t);
 int scan(struct token *t);
 
 // tree.c
@@ -17,12 +18,13 @@ void genpreamble();
 void genfreeregs();
 void genprintint(int reg);
 void genglobsym(int ind);
+int genlabel(void);
 
 // cg.c
 void freeall_registers();
 void cgpreamble();
-void cgfuncpreamble(char *name);
-void cgfuncpostamble();
+void cgfuncpreamble(int id);
+void cgfuncpostamble(int id);
 int cgloadint(int value);
 int cgloadglob(int id);
 int cgadd(int r1, int r2);
@@ -37,8 +39,12 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
 void cglabel(int l);
 void cgjump(int l);
 int cgwiden(int r, int oldtype, int newtype);
+int cgprimsize(int type);
+void cgreturn(int reg, int id);
+int cgcall(int r, int id);
 
 // expr.c
+struct ASTnode *funccall(void);
 struct ASTnode *binexpr(int rbp);
 
 // stmt.c
@@ -59,7 +65,7 @@ void fatalc(char *s, int c);
 
 // sym.c
 int findglob(char *s);
-int addglob(char *name, int type, int stype);
+int addglob(char *name, int type, int stype, int endlabel);
 
 // decl.c
 void var_declaration(void);
