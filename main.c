@@ -21,7 +21,6 @@ static void usage(char *prog)
 
 int main(int argc, char *argv[])
 {
-    struct ASTnode *tree;
     if (argc != 2)
     {
         usage(argv[0]);
@@ -45,15 +44,10 @@ int main(int argc, char *argv[])
     // For now, ensure that void printint() is defined
     addglob("printint", P_CHAR, S_FUNCTION, 0);
 
-    scan(&Token);  // Get the first token from the input
-    genpreamble(); // Output the preamble
-    while (1)
-    {
-        tree = function_declaration();
-        genAST(tree, NOREG, 0);
-        if (Token.token == T_EOF) // Stop when have reached EOF
-            break;
-    }
+    scan(&Token);          // Get the first token from the input
+    genpreamble();         // Output the preamble
+    global_declarations(); // Parse the global declarations
+    genpostamble();        // Output the postamble
 
     fclose(Outfile); // Close the output file and exit
     exit(0);

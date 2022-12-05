@@ -104,6 +104,10 @@ void genpreamble()
     cgpreamble();
 }
 
+void genpostamble() {
+  cgpostamble();
+}
+
 void genfreeregs()
 {
     freeall_registers();

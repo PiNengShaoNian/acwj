@@ -15,6 +15,7 @@ int interpretAST(struct ASTnode *n);
 // gen.c
 int genAST(struct ASTnode *n, int reg, int parentASTop);
 void genpreamble();
+void genpostamble();
 void genfreeregs();
 void genprintint(int reg);
 void genglobsym(int ind);
@@ -23,6 +24,7 @@ int genlabel(void);
 // cg.c
 void freeall_registers();
 void cgpreamble();
+void cgpostamble();
 void cgfuncpreamble(int id);
 void cgfuncpostamble(int id);
 int cgloadint(int value);
@@ -70,10 +72,12 @@ int findglob(char *s);
 int addglob(char *name, int type, int stype, int endlabel);
 
 // decl.c
-void var_declaration(void);
-struct ASTnode *function_declaration(void);
+void var_declaration(int type);
+struct ASTnode *function_declaration(int type);
+void global_declarations(void);
 
 // types.c
+int parse_type(void);
 int type_compatible(int *left, int *right, int onlyright);
 int pointer_to(int type);
 int value_at(int type);

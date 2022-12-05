@@ -39,34 +39,78 @@ int parse_type()
     return (type);
 }
 
-// Parse the declaration of a variable
-void var_declaration(void)
+// Parse one or more global declarations, either
+// variables or functions
+void global_declarations(void)
 {
-    int id, type;
+    struct ASTnode *tree;
+    int type;
 
-    // Get the type of the variable
-    // which also scans in the identifier
-    type = parse_type();
-    ident();
+    while (1)
+    {
+        // We have to read past the type and identifier
+        // to see either a '(' for a function declaration
+        // or a ',' or ';' for a variable declaration.
+        // Text is filled in by the ident() call.
+        type = parse_type();
+        ident();
+        if (Token.token == T_LPAREN)
+        {
+            // Parse the function declaration and
+            // generate the assembly code for it
+            tree = function_declaration(type);
+            genAST(tree, NOREG, 0);
+        }
+        else
+        {
+            // Parse the global variable declaration
+            var_declaration(type);
+        }
 
-    // Text now has the identifier's name.
-    // Add it as a known identifier
-    // and generate its space in assembly
-    id = addglob(Text, type, S_VARIABLE, 0);
-    genglobsym(id);
-    // Get the trailing semicolon
-    semi();
+        if (Token.token == T_EOF)
+            break;
+    }
+}
+
+// Parse the declaration of a variable
+void var_declaration(int type)
+{
+    int id;
+
+    while (1)
+    {
+        // Text now has the identifier's name.
+        // Add it as a known identifier
+        // and generate its space in assembly
+        id = addglob(Text, type, S_VARIABLE, 0);
+        genglobsym(id);
+
+        // If the next token is semicolon,
+        // skip it and return.
+        if (Token.token == T_SEMI)
+        {
+            scan(&Token);
+            return;
+        }
+
+        // If the next token is a comma, skip it,
+        // get the identifier and loop back
+        if (Token.token == T_COMMA)
+        {
+            scan(&Token);
+            ident();
+            continue;
+        }
+
+        fatal("Missing, or ; after identifier");
+    }
 }
 
 // Parse the declaration of a simplistic function
-struct ASTnode *function_declaration(void)
+struct ASTnode *function_declaration(int type)
 {
     struct ASTnode *tree, *finalstmt;
-    int nameslot, type, endlabel;
-
-    // Get the type of the variable, then the identifier
-    type = parse_type();
-    ident();
+    int nameslot, endlabel;
 
     // Get a label-id for the end label, and the function
     // to the symbol table, and set the Functionid global
