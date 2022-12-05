@@ -9,6 +9,7 @@ int arithop(int tokentype)
     if (tokentype > T_EOF && tokentype < T_INTLIT)
         return tokentype;
     fatald("arithop: Syntax error, token", tokentype);
+    return (0); // Keep -Wall happy
 }
 
 // Parse a primary factor and return an
@@ -58,6 +59,49 @@ static struct ASTnode *primary(void)
     return n;
 }
 
+// Parse a prefix expression and return
+// a sub-tree representing it.
+struct ASTnode *prefix(void)
+{
+    struct ASTnode *tree;
+    switch (Token.token)
+    {
+    case T_AMPER:
+        // Get the next token and parse it
+        // recursively as a prefix expression
+        scan(&Token);
+        tree = prefix();
+
+        // Ensure that it's an identifier
+        if (tree->op != A_IDENT)
+            fatal("& operator must be followed by an identifier");
+
+        // Now change the operator to A_ADDR and the type to
+        // a pointer to the original type
+        tree->op = A_ADDR;
+        tree->type = pointer_to(tree->type);
+        break;
+    case T_STAR:
+        // Get the next token and parse it
+        // recursively as a prefix expression
+        scan(&Token);
+        tree = prefix();
+
+        // For now, ensure it's either another deref or an
+        // identifier
+        if (tree->op != A_IDENT && tree->op != A_DEREF)
+            fatal("* operator must be followed by an identifier or *");
+
+        // Prepend an A_DEREF operation to the tree
+        tree = mkastunary(A_DEREF, value_at(tree->type), tree, 0);
+        break;
+    default:
+        tree = primary();
+    }
+
+    return (tree);
+}
+
 // Operator precedence for each token. Must
 // match up with the order of tokens in defs.h
 static int OpPrec[] = {
@@ -87,7 +131,7 @@ struct ASTnode *binexpr(int ptp)
 
     // Get the integer literal on the left.
     // Fetch the next token at the same time.
-    left = primary();
+    left = prefix();
 
     // If we hit a semicolon, return just the left node
     tokentype = Token.token;

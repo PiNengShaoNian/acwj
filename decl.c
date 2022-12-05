@@ -3,18 +3,40 @@
 #include "decl.h"
 
 // Parse the current token and
-// return a primitive type enum value
-int parse_type(int t)
+// return a primitive type enum value.
+// Also scan in the next token
+int parse_type()
 {
-    if (t == T_CHAR)
-        return P_CHAR;
-    if (t == T_INT)
-        return P_INT;
-    if (t == T_VOID)
-        return P_VOID;
-    if (t == T_LONG)
-        return P_LONG;
-    fatald("Illegal type, token", t);
+    int type;
+    switch (Token.token)
+    {
+    case T_VOID:
+        type = P_VOID;
+        break;
+    case T_CHAR:
+        type = P_CHAR;
+        break;
+    case T_INT:
+        type = P_INT;
+        break;
+    case T_LONG:
+        type = P_LONG;
+        break;
+    default:
+        fatald("Illegal type, token", Token.token);
+    }
+
+    // Scan in one or more further '*' tokens
+    // and determine the correct pointer type
+    while (1)
+    {
+        scan(&Token);
+        if (Token.token != T_STAR)
+            break;
+        type = pointer_to(type);
+    }
+
+    return (type);
 }
 
 // Parse the declaration of a variable
@@ -22,12 +44,17 @@ void var_declaration(void)
 {
     int id, type;
 
-    // Get the type of the variable, then the identifier
-    type = parse_type(Token.token);
-    scan(&Token);
+    // Get the type of the variable
+    // which also scans in the identifier
+    type = parse_type();
     ident();
+
+    // Text now has the identifier's name.
+    // Add it as a known identifier
+    // and generate its space in assembly
     id = addglob(Text, type, S_VARIABLE, 0);
     genglobsym(id);
+    // Get the trailing semicolon
     semi();
 }
 
@@ -38,8 +65,7 @@ struct ASTnode *function_declaration(void)
     int nameslot, type, endlabel;
 
     // Get the type of the variable, then the identifier
-    type = parse_type(Token.token);
-    scan(&Token);
+    type = parse_type();
     ident();
 
     // Get a label-id for the end label, and the function

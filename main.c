@@ -12,26 +12,6 @@ static void init()
     Putback = '\n';
 }
 
-// List of printable tokens
-char *tokstr[] = {"+", "-", "*", "/", "intlit"};
-
-// Loop scanning in all the tokens in the input file.
-// Print out details of each token found.
-static void scanfile()
-{
-    struct token T;
-
-    while (scan(&T))
-    {
-        printf("Token %s", tokstr[T.token]);
-        if (T.token == T_INTLIT)
-        {
-            printf(", value %d", T.intvalue);
-        }
-        printf("\n");
-    }
-}
-
 // Print out a usage if started incorrectly
 static void usage(char *prog)
 {
@@ -39,7 +19,7 @@ static void usage(char *prog)
     exit(1);
 }
 
-void main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     struct ASTnode *tree;
     if (argc != 2)

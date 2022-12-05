@@ -105,6 +105,9 @@ int cgloadglob(int id)
                 reglist[r]);
         break;
     case P_LONG:
+    case P_CHARPTR:
+    case P_INTPTR:
+    case P_LONGPTR:
         fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
         break;
     default:
@@ -128,6 +131,9 @@ int cgstorglob(int r, int id)
                 Gsym[id].name);
         break;
     case P_LONG:
+    case P_CHARPTR:
+    case P_INTPTR:
+    case P_LONGPTR:
         fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], Gsym[id].name);
         break;
     default:
@@ -192,16 +198,6 @@ void cgprintint(int r)
     free_register(r);
 }
 
-static int cgcompare(int r1, int r2, char *how)
-{
-    fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
-    fprintf(Outfile, "\t%s\t%s\n", how, breglist[r2]);
-    fprintf(Outfile, "\tandq\t$255,%s\n", reglist[r2]);
-    free_register(r1);
-
-    return r2;
-}
-
 // List of comparison instructions,
 // in AST order: A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE
 static char *cmplist[] = {"sete", "setne", "setl", "setg", "setle", "setge"};
@@ -259,18 +255,18 @@ int cgwiden(int r, int oldtype, int newtype)
 }
 
 // Array of type sizes in P_XXX order.
-// 0 means no size. P_NONE, P_VOID, P_CHAR, P_INT, P_LONG
-static int psize[] = {0, 0, 1, 4, 8};
+// 0 means no size. P_NONE, P_VOID, P_CHAR, P_INT, P_LONG, P_CHARPTR,
+// P_INTPTR, P_LONGPTR
+static int psize[] = { 0, 0, 1, 4, 8, 8, 8, 8 };
 
 // Given a P_XXX type value, return the
 // size of a primitive type in bytes.
 int cgprimsize(int type)
 {
     // Check the type is valid
-    if (type < P_NONE || type > P_LONG)
+    if (type < P_NONE || type > P_LONGPTR)
         fatal("Bad type in cgprimsize()");
-
-    return psize[type];
+    return (psize[type]);
 }
 
 // Call a function with one argument from the given register
@@ -305,4 +301,32 @@ void cgreturn(int reg, int id)
         fatald("Bad function type in cgreturn:", Gsym[id].type);
     }
     cgjump(Gsym[id].endlabel);
+}
+
+// Generate code to load the address of a global
+// identifier into a variable. Return a new register
+int cgaddress(int id)
+{
+    int r = alloc_register();
+
+    fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", Gsym[id].name, reglist[r]);
+    return (r);
+}
+
+// Dereference a pointer to get the value it
+// pointing at into the same register
+int cgderef(int r, int type)
+{
+    switch (type)
+    {
+    case P_CHARPTR:
+        fprintf(Outfile, "\tmovzbq\t(%s), %s\n", reglist[r], reglist[r]);
+        break;
+    case P_INTPTR:
+    case P_LONGPTR:
+        fprintf(Outfile, "\tmovq\t(%s), %s\n", reglist[r], reglist[r]);
+        break;
+    }
+
+    return (r);
 }

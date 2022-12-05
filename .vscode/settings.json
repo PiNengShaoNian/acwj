@@ -3,6 +3,7 @@
         "decl.h": "c",
         "defs.h": "c",
         "string.h": "c",
-        "data.h": "c"
+        "data.h": "c",
+        "type_traits": "c"
     }
 }

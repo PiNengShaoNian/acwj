@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/comp1",
-            "args": ["tests/input14"],
+            "args": ["tests/input15.c"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

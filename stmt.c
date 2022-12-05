@@ -9,7 +9,6 @@ struct ASTnode *print_statement(void)
 {
     struct ASTnode *tree;
     int lefttype, righttype;
-    int reg;
 
     // Match a 'print' as the first token
     match(T_PRINT, "print");
@@ -139,7 +138,7 @@ struct ASTnode *if_statement(void)
     }
 
     // Build and return the AST for this statement.
-    mkastnode(A_IF, P_NONE, condAST, trueAST, falseAST, 0);
+    return (mkastnode(A_IF, P_NONE, condAST, trueAST, falseAST, 0));
 }
 
 // Parse a FOR statement
@@ -244,6 +243,7 @@ static struct ASTnode *single_statement(void)
         return return_statement();
     default:
         fatald("single_statement: Syntax error, token", Token.token);
+        return NULL;
     }
 }
 

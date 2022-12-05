@@ -17,6 +17,7 @@ struct ASTnode *mkastnode(int op, int type,
 
     // Copy in the filed values and return it
     n->op = op;
+    n->type = type;
     n->left = left;
     n->mid = mid;
     n->right = right;
