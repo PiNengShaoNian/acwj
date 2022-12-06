@@ -68,7 +68,7 @@ int genAST(struct ASTnode *n, int reg, int parentASTop)
         else
             return cgcompare_and_set(n->op, leftreg, rightreg);
     case A_INTLIT:
-        return cgloadint(n->v.intvalue);
+        return (cgloadint(n->v.intvalue, n->type));
     case A_IDENT:
         return cgloadglob(n->v.id);
     case A_LVIDENT:
@@ -93,6 +93,23 @@ int genAST(struct ASTnode *n, int reg, int parentASTop)
         return (cgaddress(n->v.id));
     case A_DEREF:
         return (cgderef(leftreg, n->left->type));
+    case A_SCALE:
+        // Small optimisation: use shift if the
+        // scale value is a known power of two
+        switch (n->v.size)
+        {
+        case 2:
+            return (cgshlconst(leftreg, 1));
+        case 4:
+            return (cgshlconst(leftreg, 2));
+        case 8:
+            return (cgshlconst(leftreg, 3));
+        default:
+            // Load a register with the size and
+            // multiply the leftreg by this size
+            rightreg = cgloadint(n->v.size, P_INT);
+            return (cgmul(leftreg, rightreg));
+        }
     default:
         fatald("Unknown AST operator", n->op);
         return (0);
@@ -104,8 +121,9 @@ void genpreamble()
     cgpreamble();
 }
 
-void genpostamble() {
-  cgpostamble();
+void genpostamble()
+{
+    cgpostamble();
 }
 
 void genfreeregs()
@@ -204,4 +222,9 @@ static int genWHILE(struct ASTnode *n)
     cgjump(Lstart);
     cglabel(Lend);
     return NOREG;
+}
+
+int genprimsize(int type)
+{
+    return (cgprimsize(type));
 }

@@ -2,45 +2,6 @@
 #include "data.h"
 #include "decl.h"
 
-// Given two primitive types, return true if they are compatible,
-// false otherwise. Also return either zero or an A_WIDEN
-// operation if one has to be widened to match the other.
-// If onlyright is true, only widen left to right.
-int type_compatible(int *left, int *right, int onlyright)
-{
-    // Voids not compatible with anything
-    if ((*left == P_VOID) || (*right == P_VOID))
-        return 0;
-
-    // Same types, the are compatible
-    if (*left == *right)
-    {
-        *left = *right = 0;
-        return 1;
-    }
-
-    // Widen P_CHARs to P_INTs as required
-    if ((*left == P_CHAR) && (*right == P_INT))
-    {
-        *left = A_WIDEN;
-        *right = 0;
-        return 1;
-    }
-
-    if ((*left == P_INT) && (*right == P_CHAR))
-    {
-        if (onlyright)
-            return 0;
-        *left = 0;
-        *right = A_WIDEN;
-        return 1;
-    }
-
-    // Anything remaining is compatible
-    *left = *right = 0;
-    return 1;
-}
-
 // Given a primitive type, return
 // the type which is a pointer to it
 int pointer_to(int type)
@@ -91,4 +52,81 @@ int value_at(int type)
     }
 
     return newtype;
+}
+
+// Return true if a type is an int type
+// of any size, false otherwise
+int inttype(int type)
+{
+    if (type == P_CHAR || type == P_INT || type == P_LONG)
+        return (1);
+    return (0);
+}
+
+// Return true if a type is of pointer type
+int ptrtype(int type)
+{
+    if (type == P_VOIDPTR || type == P_CHARPTR || type == P_INTPTR || type == P_LONGPTR)
+        return (1);
+    return (0);
+}
+
+// Given an AST tree and a type which we want it to become,
+// possibly modify the tree by widening or scaling so that
+// it is compatible with this type. Return the original tree
+// if no changes occurred, a modified tree, or NULL if the
+// tree is not compatible with the given type.
+// If this will be part of a binary operation, the AST op is not zero.
+struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op)
+{
+    int ltype;
+    int lsize, rsize;
+
+    ltype = tree->type;
+
+    // Compare scalar int types
+    if (inttype(ltype) && inttype(rtype))
+    {
+        // Both types same, nothing to do
+        if (ltype == rtype)
+            return (tree);
+
+        // Get the sizes for each type
+        lsize = genprimsize(ltype);
+        rsize = genprimsize(rtype);
+
+        // Tree's size is too long
+        if (lsize > rsize)
+            return (NULL);
+
+        // Widen to the right
+        if (rsize > lsize)
+            return (mkastunary(A_WIDEN, rtype, tree, 0));
+    }
+
+    // For pointers on the left
+    if (ptrtype(ltype))
+    {
+        // Ok is same type on right and not doing a binary op
+        if (op == 0 && ltype == rtype)
+            return (tree);
+    }
+
+    // We can scale only on A_ADD or A_SUBTRACT operation
+    if (op == A_ADD || op == A_SUBTRACT)
+    {
+        // Left is int type, right is pointer and the size
+        // of the original type is >1: scale the left
+        if (inttype(ltype) && ptrtype(rtype))
+        {
+            rsize = genprimsize(value_at(rtype));
+            if (rsize > 1)
+            {
+                return (mkastunary(A_SCALE, rtype, tree, rsize));
+            }
+        }
+    }
+
+    // If we get here, the types are not compatible
+    return (NULL);
 }

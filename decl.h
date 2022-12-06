@@ -20,6 +20,7 @@ void genfreeregs();
 void genprintint(int reg);
 void genglobsym(int ind);
 int genlabel(void);
+int genprimsize(int type);
 
 // cg.c
 void freeall_registers();
@@ -27,7 +28,7 @@ void cgpreamble();
 void cgpostamble();
 void cgfuncpreamble(int id);
 void cgfuncpostamble(int id);
-int cgloadint(int value);
+int cgloadint(int value, int type);
 int cgloadglob(int id);
 int cgadd(int r1, int r2);
 int cgsub(int r1, int r2);
@@ -46,6 +47,7 @@ void cgreturn(int reg, int id);
 int cgcall(int r, int id);
 int cgaddress(int id);
 int cgderef(int r, int type);
+int cgshlconst(int r, int val);
 
 // expr.c
 struct ASTnode *funccall(void);
@@ -78,6 +80,6 @@ void global_declarations(void);
 
 // types.c
 int parse_type(void);
-int type_compatible(int *left, int *right, int onlyright);
 int pointer_to(int type);
 int value_at(int type);
+struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);

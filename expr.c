@@ -126,7 +126,8 @@ static int op_precedence(int tokentype)
 struct ASTnode *binexpr(int ptp)
 {
     struct ASTnode *left, *right;
-    int lefttype, righttype;
+    struct ASTnode *ltemp, *rtemp;
+    int ASTop;
     int tokentype;
 
     // Get the integer literal on the left.
@@ -136,7 +137,7 @@ struct ASTnode *binexpr(int ptp)
     // If we hit a semicolon, return just the left node
     tokentype = Token.token;
     if (tokentype == T_SEMI || tokentype == T_RPAREN)
-        return left;
+        return (left);
 
     // While the precedence of this token is
     // more than that of the previous token precedence
@@ -149,17 +150,17 @@ struct ASTnode *binexpr(int ptp)
         // precedence of cur token to build a sub-tree
         right = binexpr(OpPrec[tokentype]);
 
-        // Ensure the two types are compatible.
-        lefttype = left->type;
-        righttype = right->type;
-        if (!type_compatible(&lefttype, &righttype, 0))
-            fatal("Incompatible types");
-
-        // Widen either side if required. type vars  are A_WIDEN now
-        if (lefttype)
-            left = mkastunary(lefttype, right->type, left, 0);
-        if (righttype)
-            right = mkastunary(righttype, left->type, right, 0);
+        // Ensure the two types are compatible by trying
+        // to modify each tree to match the other's type.
+        ASTop = arithop(tokentype);
+        ltemp = modify_type(left, right->type, ASTop);
+        rtemp = modify_type(right, left->type, ASTop);
+        if (ltemp == NULL && rtemp == NULL)
+            fatal("Incompatible types in binary expression");
+        if (ltemp != NULL)
+            left = ltemp;
+        if (rtemp != NULL)
+            right = rtemp;
 
         // Join that sub-tree with ours. Convert the token
         // into an AST operation at the same time.
@@ -169,12 +170,12 @@ struct ASTnode *binexpr(int ptp)
         // If we hit a semicolon, return just the left node
         tokentype = Token.token;
         if (tokentype == T_SEMI || tokentype == T_RPAREN)
-            return left;
+            return (left);
     }
 
     // Return the tree we have when the precedence
     // is same or lower
-    return left;
+    return (left);
 }
 
 // Parse a function call with a single expression

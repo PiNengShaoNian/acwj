@@ -81,14 +81,15 @@ void cgfuncpostamble(int id)
 
 // Load an integer literal value into a register
 // Return the number of the register
-int cgloadint(int value)
+// For x86-64, we don't need to worry about the type.
+int cgloadint(int value, int type)
 {
     // Get a new register
     int r = alloc_register();
 
     // Print out the code to initialise it
     fprintf(Outfile, "\tmovq\t$%d, %s\n", value, reglist[r]);
-    return r;
+    return (r);
 }
 
 // Load a value from a variable into a register.
@@ -148,13 +149,30 @@ int cgstorglob(int r, int id)
 }
 
 // Generate a global symbol
+// Generate a global symbol
 void cgglobsym(int id)
 {
     int typesize;
     // Get the size of the type
     typesize = cgprimsize(Gsym[id].type);
 
-    fprintf(Outfile, "\t.comm\t%s,%d,%d\n", Gsym[id].name, typesize, typesize);
+    fprintf(Outfile, "\t.data\n"
+                     "\t.globl\t%s\n",
+            Gsym[id].name);
+    switch (typesize)
+    {
+    case 1:
+        fprintf(Outfile, "%s:\t.byte\t0\n", Gsym[id].name);
+        break;
+    case 4:
+        fprintf(Outfile, "%s:\t.long\t0\n", Gsym[id].name);
+        break;
+    case 8:
+        fprintf(Outfile, "%s:\t.quad\t0\n", Gsym[id].name);
+        break;
+    default:
+        fatald("Unknown typesize in cgglobsym: ", typesize);
+    }
 }
 
 // Add two registers together and return
@@ -333,5 +351,12 @@ int cgderef(int r, int type)
         break;
     }
 
+    return (r);
+}
+
+// Shift a register left by a constant
+int cgshlconst(int r, int val)
+{
+    fprintf(Outfile, "\tsalq\t$%d, %s\n", val, reglist[r]);
     return (r);
 }
