@@ -9,8 +9,8 @@ struct ASTnode *mkastnode(int op, int type,
                           struct ASTnode *right, int intvalue);
 struct ASTnode *mkastleaf(int op, int type, int intvalue);
 struct ASTnode *mkastunary(int op, int type, struct ASTnode *left, int intvalue);
+void dumpAST(struct ASTnode *n, int label, int parentASTop);
 
-int interpretAST(struct ASTnode *n);
 
 // gen.c
 int genAST(struct ASTnode *n, int reg, int parentASTop);
@@ -48,6 +48,7 @@ int cgcall(int r, int id);
 int cgaddress(int id);
 int cgderef(int r, int type);
 int cgshlconst(int r, int val);
+int cgstorderef(int r1, int r2, int type);
 
 // expr.c
 struct ASTnode *funccall(void);
