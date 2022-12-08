@@ -16,7 +16,7 @@ int findglob(char *s)
         }
     }
 
-    return -1;
+    return (-1);
 }
 
 // Get the position of a new global symbol slot, or die
@@ -28,13 +28,13 @@ static int newglob(void)
     if ((p = Globs++) >= NSYMBOLS)
         fatal("Too many global symbols");
 
-    return p;
+    return (p);
 }
 
 // Add a global symbol to the symbol table.
 // Also set up its type and structural type.
 // Return the slot number in the symbol table
-int addglob(char *name, int type, int stype, int endlabel)
+int addglob(char *name, int type, int stype, int endlabel, int size)
 {
     int y;
 
@@ -49,5 +49,6 @@ int addglob(char *name, int type, int stype, int endlabel)
     Gsym[y].type = type;
     Gsym[y].stype = stype;
     Gsym[y].endlabel = endlabel;
-    return y;
+    Gsym[y].size = size;
+    return (y);
 }

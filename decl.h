@@ -11,7 +11,6 @@ struct ASTnode *mkastleaf(int op, int type, int intvalue);
 struct ASTnode *mkastunary(int op, int type, struct ASTnode *left, int intvalue);
 void dumpAST(struct ASTnode *n, int label, int parentASTop);
 
-
 // gen.c
 int genAST(struct ASTnode *n, int reg, int parentASTop);
 void genpreamble();
@@ -51,7 +50,6 @@ int cgshlconst(int r, int val);
 int cgstorderef(int r1, int r2, int type);
 
 // expr.c
-struct ASTnode *funccall(void);
 struct ASTnode *binexpr(int rbp);
 
 // stmt.c
@@ -72,7 +70,7 @@ void fatalc(char *s, int c);
 
 // sym.c
 int findglob(char *s);
-int addglob(char *name, int type, int stype, int endlabel);
+int addglob(char *name, int type, int stype, int endlabel, int size);
 
 // decl.c
 void var_declaration(int type);
@@ -80,6 +78,7 @@ struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 
 // types.c
+int inttype(int type);
 int parse_type(void);
 int pointer_to(int type);
 int value_at(int type);

@@ -149,29 +149,35 @@ int cgstorglob(int r, int id)
 }
 
 // Generate a global symbol
-// Generate a global symbol
 void cgglobsym(int id)
 {
     int typesize;
     // Get the size of the type
     typesize = cgprimsize(Gsym[id].type);
 
+    // Generate the global identity and the label
     fprintf(Outfile, "\t.data\n"
                      "\t.globl\t%s\n",
             Gsym[id].name);
-    switch (typesize)
+    fprintf(Outfile, "%s:", Gsym[id].name);
+
+    // Generate the space
+    for (int i = 0; i < Gsym[id].size; i++)
     {
-    case 1:
-        fprintf(Outfile, "%s:\t.byte\t0\n", Gsym[id].name);
-        break;
-    case 4:
-        fprintf(Outfile, "%s:\t.long\t0\n", Gsym[id].name);
-        break;
-    case 8:
-        fprintf(Outfile, "%s:\t.quad\t0\n", Gsym[id].name);
-        break;
-    default:
-        fatald("Unknown typesize in cgglobsym: ", typesize);
+        switch (typesize)
+        {
+        case 1:
+            fprintf(Outfile, "\t.byte\t0\n");
+            break;
+        case 4:
+            fprintf(Outfile, "\t.long\t0\n");
+            break;
+        case 8:
+            fprintf(Outfile, "\t.quad\t0\n");
+            break;
+        default:
+            fatald("Unknown typesize in cgglobsym: ", typesize);
+        }
     }
 }
 
