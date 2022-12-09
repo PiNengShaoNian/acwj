@@ -90,6 +90,12 @@ static struct ASTnode *primary(void)
 
     switch (Token.token)
     {
+    case T_STRLIT:
+        // For a STRLIT token, generate the assembly for it.
+        // Then make a leaf AST node for it. id is the string's label.
+        id = genglobstr(Text);
+        n = mkastleaf(A_STRLIT, P_CHARPTR, id);
+        break;
     case T_INTLIT:
         // For an INTLIT token, make a leaf AST node for it
         // Make it a P_CHAR if it's within the P_CHAR range.

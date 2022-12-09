@@ -67,6 +67,8 @@ int genAST(struct ASTnode *n, int reg, int parentASTop)
             return cgcompare_and_jump(n->op, leftreg, rightreg, reg);
         else
             return cgcompare_and_set(n->op, leftreg, rightreg);
+    case A_STRLIT:
+        return (cgloadglobstr(n->v.id));
     case A_INTLIT:
         return (cgloadint(n->v.intvalue, n->type));
     case A_IDENT:
@@ -238,4 +240,11 @@ static int genWHILE(struct ASTnode *n)
 int genprimsize(int type)
 {
     return (cgprimsize(type));
+}
+
+int genglobstr(char *strvalue)
+{
+    int l = genlabel();
+    cgglobstr(l, strvalue);
+    return (l);
 }

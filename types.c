@@ -124,6 +124,8 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op)
             {
                 return (mkastunary(A_SCALE, rtype, tree, rsize));
             }
+            else
+                return (tree); // Size 1, no need to scale
         }
     }
 
