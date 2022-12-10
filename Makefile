@@ -1,7 +1,7 @@
-SRCS= cg.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c \
+SRCS= defs.h cg.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c \
 	sym.c tree.c types.c
 
-ARMSRCS= cg_arm.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c \
+ARMSRCS= defs.h cg_arm.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c \
 	sym.c tree.c types.c
 
 comp1: $(SRCS)
@@ -19,13 +19,3 @@ test: comp1 tests/runtests
 
 armtest: comp1arm tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)
-
-test21: comp1 tests/input21.c lib/printint.c
-	./comp1 tests/input21.c
-	cc -o out out.s lib/printint.c
-	./out
-
-armtest21: comp1arm tests/input21.c lib/printint.c
-	./comp1 tests/input21.c
-	cc -o out out.s lib/printint.c
-	./out
