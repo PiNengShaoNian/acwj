@@ -12,6 +12,7 @@ static void init()
     Putback = '\n';
     Globs = 0;
     O_dumpAST = 0;
+    Locls = NSYMBOLS - 1;
 }
 
 // Print out a usage if started incorrectly

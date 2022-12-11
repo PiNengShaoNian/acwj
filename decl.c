@@ -69,7 +69,7 @@ void global_declarations(void)
         else
         {
             // Parse the global variable declaration
-            var_declaration(type);
+            var_declaration(type, 0);
         }
 
         if (Token.token == T_EOF)
@@ -81,10 +81,8 @@ void global_declarations(void)
 //
 // Parse the declaration of a variable.
 // The identifier has been scanned & we have the type
-void var_declaration(int type)
+void var_declaration(int type, int islocal)
 {
-    int id;
-
     // Text now has the identifier's name.
     // If the next token is a '['
     if (Token.token == T_LBRACKET)
@@ -95,10 +93,16 @@ void var_declaration(int type)
         // Check we have an array size
         if (Token.token == T_INTLIT)
         {
-            // Add this as a known array and generate its space in assembly
+            // Add this as a known array and generate its space in assembly.
             // We treat the array as a pointer to its elements' type
-            id = addglob(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
-            genglobsym(id);
+            if (islocal)
+            {
+                addlocl(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
+            }
+            else
+            {
+                addglob(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
+            }
         }
 
         // Ensure we have a following ']'
@@ -110,9 +114,16 @@ void var_declaration(int type)
 
         // Add it as a known identifier
         // and generate its space in assembly
-        id = addglob(Text, type, S_VARIABLE, 0, 1);
-        genglobsym(id);
+        if (islocal)
+        {
+            addlocl(Text, type, S_VARIABLE, 0, 1);
+        }
+        else
+        {
+            addglob(Text, type, S_VARIABLE, 0, 1);
+        }
     }
+
     // Get the trailing semicolon
     semi();
 }
@@ -129,6 +140,8 @@ struct ASTnode *function_declaration(int type)
     endlabel = genlabel();
     nameslot = addglob(Text, type, S_FUNCTION, endlabel, 0);
     Functionid = nameslot;
+
+    genresetlocals(); // Reset position of new locals
 
     // Scan in the parentheses
     lparen();

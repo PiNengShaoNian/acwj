@@ -150,14 +150,24 @@ enum
     S_ARRAY
 };
 
+// Storage classes
+enum
+{
+    C_GLOBAL = 1,
+    C_LOCAL
+};
+
 // Symbol table structure
 struct symtable
 {
     char *name;   // Name of a symbol
     int type;     // Primitive type for the symbol
     int stype;    // Structural type for the symbol
+    int class;    // Storage class for symbol
     int endlabel; // For S_FUNCTIONs, the end label
     int size;     // Number of elements in the symbol
+    int posn;     // For local, the negative offset
+                  // from the stack base pointer
 };
 
 #define NOREG -1  // Use NOREG when the AST generation

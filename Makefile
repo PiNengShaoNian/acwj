@@ -1,13 +1,14 @@
-SRCS= defs.h cg.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c \
-	sym.c tree.c types.c
+HSRCS= data.h decl.h defs.h
+SRCS= cg.c decl.c expr.c gen.c main.c misc.c \
+	scan.c stmt.c sym.c tree.c types.c
 
-ARMSRCS= defs.h cg_arm.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c \
-	sym.c tree.c types.c
+ARMSRCS= cg.c decl.c expr.c gen.c main.c misc.c \
+	scan.c stmt.c sym.c tree.c types.c
 
-comp1: $(SRCS)
+comp1: $(SRCS) $(HSRCS)
 	cc -o comp1 -g -Wall $(SRCS)
 
-comp1arm: $(ARMSRCS)
+comp1arm: $(ARMSRCS) $(HSRCS)
 	cc -o comp1arm -g -Wall $(ARMSRCS)
 	cp comp1arm comp1
 
