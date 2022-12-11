@@ -21,8 +21,6 @@ void genglobsym(int ind);
 int genglobstr(char *strvalue);
 int genlabel(void);
 int genprimsize(int type);
-void genresetlocals(void);
-int gengetlocaloffset(int type, int isparam);
 
 // cg.c
 void freeall_registers();
@@ -64,8 +62,7 @@ int cgor(int r1, int r2);
 int cgxor(int r1, int r2);
 int cgshl(int r1, int r2);
 int cgshr(int r1, int r2);
-void cgresetlocals(void);
-int cggetlocaloffset(int type, int isparam);
+int newlocaloffset(int type);
 
 // expr.c
 struct ASTnode *binexpr(int rbp);
@@ -91,10 +88,11 @@ int findglob(char *s);
 int findlocl(char *s);
 int findsymbol(char *s);
 int addglob(char *name, int type, int stype, int endlabel, int size);
-int addlocl(char *name, int type, int stype, int endlabel, int size);
+int addlocl(char *name, int type, int stype, int isparam, int size);
+void freeloclsyms(void);
 
 // decl.c
-void var_declaration(int type, int islocal);
+void var_declaration(int type, int islocal, int isparam);
 struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 

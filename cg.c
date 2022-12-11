@@ -33,15 +33,8 @@ void cgdataseg()
 static int localOffset;
 static int stackOffset;
 
-// Reset the position of new local variables when parsing a new function
-void cgresetlocals(void)
-{
-    localOffset = 0;
-}
-
 // Get the position of the next local variable.
-// Use the isparam flag to allocate a parameter (not yet XXX)
-int cggetlocaloffset(int type, int isparam)
+int newlocaloffset(int type)
 {
     // Decrement the offset by a minimum of 4 bytes
     // and allocate on the stack
@@ -49,12 +42,22 @@ int cggetlocaloffset(int type, int isparam)
     return (-localOffset);
 }
 
-// List of available registers
-// and their names
-static int freereg[4];
-static char *reglist[4] = {"%r8", "%r9", "%r10", "%r11"};
-static char *breglist[4] = {"%r8b", "%r9b", "%r10b", "%r11b"};
-static char *dreglist[4] = {"%r8d", "%r9d", "%r10d", "%r11d"};
+// List of available registers and their names.
+// We need a list of byte and doubleword registers, too
+// The list also includes the registers used to
+// hold function parameters
+#define NUMFREEREGS 4
+#define FIRSTPARAMREG 9 // Position of first parameter register
+static int freereg[NUMFREEREGS];
+static char *reglist[] =
+    {"%r10", "%r11", "%r12", "%r13", "%r9", "%r8", "%rcx", "%rdx", "%rsi",
+     "%rdi"};
+static char *breglist[] =
+    {"%r10b", "%r11b", "%r12b", "%r13b", "%r9b", "%r8b", "%cl", "%dl", "%sil",
+     "%dil"};
+static char *dreglist[] =
+    {"%r10d", "%r11d", "%r12d", "%r13d", "%r9d", "%r8d", "%ecx", "%edx",
+     "%esi", "%edi"};
 
 // Set all registers as available
 void freeall_registers(void)
@@ -66,7 +69,7 @@ void freeall_registers(void)
 // the register. Die if no available register
 static int alloc_register(void)
 {
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < NUMFREEREGS; i++)
     {
         if (freereg[i])
         {
@@ -75,8 +78,8 @@ static int alloc_register(void)
         }
     }
 
-    fprintf(stderr, "Out of registers!\n");
-    exit(1);
+    fatal("Out of registers");
+    return (NOREG); // Keep -Wall happy
 }
 
 // Return a register to the list of available registers.
@@ -84,10 +87,8 @@ static int alloc_register(void)
 static void free_register(int reg)
 {
     if (freereg[reg] != 0)
-    {
-        fprintf(stderr, "Error trying to free register %d\n", reg);
-        exit(1);
-    }
+        fatald("Error trying to free register", reg);
+
     freereg[reg] = 1;
 }
 
@@ -106,21 +107,54 @@ void cgpostamble()
 void cgfuncpreamble(int id)
 {
     char *name = Symtable[id].name;
+    int i;
+    int paramOffset = 16;         // Any pushed params start at this stack offset
+    int paramReg = FIRSTPARAMREG; // Index to the first param register in above reg lists
+
+    // Output in the text segment, reset local offset
     cgtextseg();
+    localOffset = 0;
 
-    // Align the stack pointer to be a multiple of 16
-    // less than its previous value
-    stackOffset = (localOffset + 15) & ~15;
-    // printf("preamble local %d stack %d\n", localOffset, stackOffset);
-
+    // Output the function start, save the %rsp and %rsp
     fprintf(Outfile,
             "\t.globl\t%s\n"
             "\t.type\t%s, @function\n"
             "%s:\n"
             "\tpushq\t%%rbp\n"
-            "\tmovq\t%%rsp, %%rbp\n"
-            "\taddq\t$%d,%%rsp\n",
-            name, name, name, -stackOffset);
+            "\tmovq\t%%rsp, %%rbp\n",
+            name, name, name);
+
+    // Copy any in-register parameters to the stack
+    // Stop after no more than six parameter registers
+    for (i = NSYMBOLS - 1; i > Locls; i--)
+    {
+        if (Symtable[i].class != C_PARAM)
+            break;
+        if (i < NSYMBOLS - 6)
+            break;
+        Symtable[i].posn = newlocaloffset(Symtable[i].type);
+        cgstorlocal(paramReg--, i);
+    }
+
+    // For the remainder, if they are a parameter then they are
+    // already on the stack. If only a local, make a stack position.
+    for (; i > Locls; i--)
+    {
+        if (Symtable[i].class == C_PARAM)
+        {
+            Symtable[i].posn = paramOffset;
+            paramOffset += 8;
+        }
+        else
+        {
+            Symtable[i].posn = newlocaloffset(Symtable[i].type);
+        }
+    }
+
+    // Align the stack pointer to be a multiple of 16
+    // less than its previous value
+    stackOffset = (localOffset + 15) & ~15;
+    fprintf(Outfile, "\taddq\t$%d,%%rsp\n", -stackOffset);
 }
 
 // Print out a function postamble

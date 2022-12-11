@@ -63,7 +63,8 @@ enum
     T_LPAREN,
     T_RPAREN,
     T_LBRACKET,
-    T_RBRACKET
+    T_RBRACKET,
+    T_COMMA
 };
 
 // AST node types. The first few line up
@@ -153,8 +154,9 @@ enum
 // Storage classes
 enum
 {
-    C_GLOBAL = 1,
-    C_LOCAL
+    C_GLOBAL = 1, // Globally visible symbol
+    C_LOCAL,      // Locally visible symbol
+    C_PARAM       // Locally visible function parameter
 };
 
 // Symbol table structure
@@ -168,6 +170,8 @@ struct symtable
     int size;     // Number of elements in the symbol
     int posn;     // For local, the negative offset
                   // from the stack base pointer
+    #define nelems posn // For functions, # of params
+    // For structs, # of fields
 };
 
 #define NOREG -1  // Use NOREG when the AST generation

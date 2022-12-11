@@ -86,13 +86,13 @@ int genAST(struct ASTnode *n, int label, int parentASTop)
         // or we are being dereferenced
         if (n->rvalue || parentASTop == A_DEREF)
         {
-            if (Symtable[n->v.id].class == C_LOCAL)
+            if (Symtable[n->v.id].class == C_GLOBAL)
             {
-                return (cgloadlocal(n->v.id, n->op));
+                return (cgloadglob(n->v.id, n->op));
             }
             else
             {
-                return (cgloadglob(n->v.id, n->op));
+                return (cgloadlocal(n->v.id, n->op));
             }
         }
         else
@@ -102,10 +102,10 @@ int genAST(struct ASTnode *n, int label, int parentASTop)
         switch (n->right->op)
         {
         case A_IDENT:
-            if (Symtable[n->right->v.id].class == C_LOCAL)
-                return (cgstorlocal(leftreg, n->right->v.id));
-            else
+            if (Symtable[n->right->v.id].class == C_GLOBAL)
                 return (cgstorglob(leftreg, n->right->v.id));
+            else
+                return (cgstorlocal(leftreg, n->right->v.id));
         case A_DEREF:
             return (cgstorderef(leftreg, rightreg, n->right->type));
         default:
@@ -294,14 +294,4 @@ int genglobstr(char *strvalue)
     int l = genlabel();
     cgglobstr(l, strvalue);
     return (l);
-}
-
-void genresetlocals(void)
-{
-    cgresetlocals();
-}
-
-int gengetlocaloffset(int type, int isparam)
-{
-    return (cggetlocaloffset(type, isparam));
 }

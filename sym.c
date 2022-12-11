@@ -30,9 +30,11 @@ int findglob(char *s)
 
     for (i = 0; i < Globs; i++)
     {
+        if (Symtable[i].class == C_PARAM)
+            continue;
         if (*s == *Symtable[i].name && !strcmp(s, Symtable[i].name))
         {
-            return i;
+            return (i);
         }
     }
 
@@ -82,26 +84,43 @@ static int newlocl(void)
     return (p);
 }
 
+// Clear all the entries in the local symbol table
+void freeloclsyms(void)
+{
+    Locls = NSYMBOLS - 1;
+}
+
 // Add a local symbol to the symbol table. Set up its:
 // + type: char, int etc.
 // + structural type: var, function, array etc.
 // + size: number of elements
 // + endlabel: if this is a function
 // Return the slot number if the symbol table
-int addlocl(char *name, int type, int stype, int endlabel, int size)
+int addlocl(char *name, int type, int stype, int isparam, int size)
 {
-    int slot, posn;
+    int localslot, globalslot;
 
     // If this is already in the symbol table, return the existing slot
-    if ((slot = findlocl(name)) != -1)
-        return (slot);
+    if ((localslot = findlocl(name)) != -1)
+        return (-1);
 
     // Otherwise get a new symbol slot and a position for this local.
-    // Update the symbol table entry and return the slot number
-    slot = newlocl();
-    posn = gengetlocaloffset(type, 0); // XXX 0 for now
-    updatesym(slot, name, type, stype, C_LOCAL, endlabel, size, posn);
-    return (slot);
+    // Update the local symbol table entry. If this is a parameter,
+    // also create a global C_PARAM entry to build the function's prototype.
+    localslot = newlocl();
+    if (isparam)
+    {
+        updatesym(localslot, name, type, stype, C_PARAM, 0, size, 0);
+        globalslot = newglob();
+        updatesym(globalslot, name, type, stype, C_PARAM, 0, size, 0);
+    }
+    else
+    {
+        updatesym(localslot, name, type, stype, C_LOCAL, 0, size, 0);
+    }
+
+    // Return the local symbol's slot
+    return (localslot);
 }
 
 // Determine if the symbol s is in the local symbol table.

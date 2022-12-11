@@ -65,11 +65,17 @@ void global_declarations(void)
                 fprintf(stdout, "\n\n");
             }
             genAST(tree, NOLABEL, 0);
+
+            // Now free the symbols associated
+            // with this function
+            freeloclsyms();
         }
         else
         {
             // Parse the global variable declaration
-            var_declaration(type, 0);
+            // and skip past the trailing semicolon
+            var_declaration(type, 0, 0);
+            semi();
         }
 
         if (Token.token == T_EOF)
@@ -81,7 +87,7 @@ void global_declarations(void)
 //
 // Parse the declaration of a variable.
 // The identifier has been scanned & we have the type
-void var_declaration(int type, int islocal)
+void var_declaration(int type, int islocal, int isparam)
 {
     // Text now has the identifier's name.
     // If the next token is a '['
@@ -111,28 +117,64 @@ void var_declaration(int type, int islocal)
     }
     else
     {
-
         // Add it as a known identifier
         // and generate its space in assembly
         if (islocal)
         {
-            addlocl(Text, type, S_VARIABLE, 0, 1);
+            if (addlocl(Text, type, S_VARIABLE, isparam, 1) == -1)
+                fatals("Duplicate local variable declaration", Text);
         }
         else
         {
             addglob(Text, type, S_VARIABLE, 0, 1);
         }
     }
+}
 
-    // Get the trailing semicolon
-    semi();
+// param_declaration: <null>
+//                | variable_declaration
+//                | variable_declaration ',' param_declaration
+//
+// Parse the parameters in parentheses after the function name.
+// Add them as symbols to the symbol table and return the number
+// of parameters.
+static int param_declaration(void)
+{
+    int type;
+    int paramcnt = 0;
+
+    // Loop until the final right parentheses
+    while (Token.token != T_RPAREN)
+    {
+        // Get the type and identifier
+        // and add it to the symbol table
+        type = parse_type();
+        ident();
+        var_declaration(type, 1, 1);
+        paramcnt++;
+
+        // Must have a ',' or ')' at this point
+        switch (Token.token)
+        {
+        case T_COMMA:
+            scan(&Token);
+            break;
+        case T_RPAREN:
+            break;
+        default:
+            fatald("Unexpected token in parameter list", Token.token);
+        }
+    }
+
+    // Return the count of parameters
+    return (paramcnt);
 }
 
 // Parse the declaration of a simplistic function
 struct ASTnode *function_declaration(int type)
 {
     struct ASTnode *tree, *finalstmt;
-    int nameslot, endlabel;
+    int nameslot, endlabel, paramcnt;
 
     // Get a label-id for the end label, and the function
     // to the symbol table, and set the Functionid global
@@ -141,10 +183,10 @@ struct ASTnode *function_declaration(int type)
     nameslot = addglob(Text, type, S_FUNCTION, endlabel, 0);
     Functionid = nameslot;
 
-    genresetlocals(); // Reset position of new locals
-
     // Scan in the parentheses
     lparen();
+    paramcnt = param_declaration();
+    Symtable[nameslot].nelems = paramcnt;
     rparen();
 
     // Get the AST tree for the compound statement
@@ -155,6 +197,12 @@ struct ASTnode *function_declaration(int type)
     // was a return statement
     if (type != P_VOID)
     {
+        // Error if no statements in the function
+        if (tree == NULL)
+            fatal("No statements in function with non-void type");
+
+        // Check that the last AST operation in the
+        // compound statement was a return statement
         finalstmt = (tree->op == A_GLUE) ? tree->right : tree;
         if (finalstmt == NULL || finalstmt->op != A_RETURN)
             fatal("No return for function with non-void type");
