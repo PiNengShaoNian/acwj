@@ -4,6 +4,7 @@
 
 static int genIFAST(struct ASTnode *n);
 static int genWHILE(struct ASTnode *n);
+static int gen_funccall(struct ASTnode *n);
 
 // Given an AST, the register (if any) that holds
 // the previous rvalue, and the AST op of the parent,
@@ -20,6 +21,8 @@ int genAST(struct ASTnode *n, int label, int parentASTop)
         return genIFAST(n);
     case A_WHILE:
         return genWHILE(n);
+    case A_FUNCCALL:
+        return (gen_funccall(n));
     case A_GLUE:
         // Do each child statement, and free the
         // registers after each child
@@ -124,8 +127,6 @@ int genAST(struct ASTnode *n, int label, int parentASTop)
     case A_RETURN:
         cgreturn(leftreg, Functionid);
         return NOREG;
-    case A_FUNCCALL:
-        return cgcall(leftreg, n->v.id);
     case A_ADDR:
         return (cgaddress(n->v.id));
     case A_SCALE:
@@ -294,4 +295,36 @@ int genglobstr(char *strvalue)
     int l = genlabel();
     cgglobstr(l, strvalue);
     return (l);
+}
+
+// Generate the code to copy the arguments of a
+// function call to its parameters, then call the
+// function itself. Return the register that holds
+// the function's return value.
+static int gen_funccall(struct ASTnode *n)
+{
+    struct ASTnode *gluetree = n->left;
+    int reg;
+    int numargs = 0;
+
+    // If there is a list of arguments, walk this list
+    // from the last argument (right-hand child) to the
+    // first
+    while (gluetree)
+    {
+        // Calculate the expression's value
+        reg = genAST(gluetree->right, NOLABEL, gluetree->op);
+        // Copy this into the n'th function parameter: size is 1, 2, 3, ...
+        cgcopyarg(reg, gluetree->v.size);
+        // Keep the first (highest) number of arguments
+        if (numargs == 0)
+            numargs = gluetree->v.size;
+
+        genfreeregs();
+        gluetree = gluetree->left;
+    }
+
+    // Call the function, clean up the stack (based on numargs),
+    // and return its result
+    return (cgcall(n->v.id, numargs));
 }
