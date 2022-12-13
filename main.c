@@ -66,8 +66,8 @@ int main(int argc, char *argv[])
     }
 
     // For now, ensure that printint() and printchar() are defined
-    addglob("printint", P_CHAR, S_FUNCTION, 0, 0);
-    addglob("printchar", P_VOID, S_FUNCTION, 0, 0);
+    addglob("printint", P_CHAR, S_FUNCTION, C_GLOBAL, 0, 0);
+    addglob("printchar", P_VOID, S_FUNCTION, C_GLOBAL, 0, 0);
 
     scan(&Token);          // Get the first token from the input
     genpreamble();         // Output the preamble
