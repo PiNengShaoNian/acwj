@@ -8,13 +8,18 @@ extern_ int Line;
 extern_ int Putback;
 extern_ FILE *Infile;
 extern_ FILE *Outfile;
+extern_ char *Outfilename;	// Name of file we opened as Outfile
 extern_ struct token Token;
 extern_ char Text[TEXTLEN];
 extern_ int Functionid; // Symbol id of the current function
 extern_ int Globs;      // Position of next free global symbol slot
 extern_ int Locls;      // Position of next free local symbol slot
 
-#define NSYMBOLS 1024                   // Number of symbol table entries
+#define NSYMBOLS 1024                       // Number of symbol table entries
 extern_ struct symtable Symtable[NSYMBOLS]; // Global symbol table
 
-extern_ int O_dumpAST;
+extern_ int O_dumpAST;  // If true, dump the AST trees
+extern_ int O_keepasm;  // If true, keep any assembly files
+extern_ int O_assemble; // If true, assemble the assembly files
+extern_ int O_dolink;   // If true, link the object files
+extern_ int O_verbose;  // If true, print info on compilation stages

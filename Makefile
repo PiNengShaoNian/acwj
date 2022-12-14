@@ -5,18 +5,18 @@ SRCS= cg.c decl.c expr.c gen.c main.c misc.c \
 ARMSRCS= cg.c decl.c expr.c gen.c main.c misc.c \
 	scan.c stmt.c sym.c tree.c types.c
 
-comp1: $(SRCS) $(HSRCS)
-	cc -o comp1 -g -Wall $(SRCS)
+cwj: $(SRCS) $(HSRCS)
+	cc -o cwj -g -Wall $(SRCS)
 
-comp1arm: $(ARMSRCS) $(HSRCS)
-	cc -o comp1arm -g -Wall $(ARMSRCS)
-	cp comp1arm comp1
+cwjarm: $(ARMSRCS) $(HSRCS)
+	cc -o cwjarm -g -Wall $(ARMSRCS)
+	cp cwjarm cwj
 
 clean:
-	rm -f comp1 comp1arm *.o *.s out
+	rm -f cwj cwjarm *.o *.s out
 
-test: comp1 tests/runtests
+test: cwj tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)
 
-armtest: comp1arm tests/runtests
+armtest: cwjarm tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)

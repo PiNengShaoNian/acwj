@@ -158,3 +158,10 @@ void copyfuncparams(int slot)
         addlocl(Symtable[id].name, Symtable[id].type, Symtable[id].stype, Symtable[id].class, Symtable[id].size);
     }
 }
+
+// Reset the contents of the symbol table
+void clear_symtable(void)
+{
+    Globs = 0;
+    Locls = NSYMBOLS - 1;
+}

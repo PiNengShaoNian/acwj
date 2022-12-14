@@ -92,6 +92,7 @@ int addglob(char *name, int type, int stype, int class, int endlabel, int size);
 int addlocl(char *name, int type, int stype, int class, int size);
 void freeloclsyms(void);
 void copyfuncparams(int slot);
+void clear_symtable(void);
 
 // decl.c
 void var_declaration(int type, int class);
