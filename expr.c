@@ -205,8 +205,7 @@ static struct ASTnode *primary(void)
         rparen();
         return (n);
     default:
-        fprintf(stderr, "syntax error on line %d\n", Line);
-        exit(1);
+        fatald("Expecting a primary expression, got token", Token.token);
     }
 
     // Scan in the next token and return the leaf node
@@ -395,7 +394,7 @@ struct ASTnode *binexpr(int ptp)
 
             // Ensure the right's type matches the left
             right = modify_type(right, left->type, 0);
-            if (left == NULL)
+            if (right == NULL)
                 fatal("Incompatible expression in assignment");
 
             // Make an assignment AST tree. However, switch

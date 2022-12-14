@@ -422,8 +422,8 @@ int scan(struct token *t)
             break;
         }
 
-        printf("Unrecognised character %c on line %d\n", c, Line);
-        exit(1);
+        // The character isn't part of any recognised token, error
+        fatalc("Unrecognised character", c);
     }
 
     return 1;
