@@ -2,55 +2,54 @@
 #include "data.h"
 #include "decl.h"
 
-// Update a symbol at the give slot number in the symbol table. Set up its:
-// + type: char, int etc.
-// + structural type: var, function, array etc.
-// + size: number of elements
-// + endlabel: if this is a function
-// + posn: Position information for local symbols
-static void updatesym(int slot, char *name, int type, int stype,
-                      int class, int size, int posn)
+// Append a node to the singly-linked list pointed to by head or tail
+void appendsym(struct symtable **head, struct symtable **tail, struct symtable *node)
 {
-    if (slot < 0 || slot >= NSYMBOLS)
-        fatal("Invalid symbol slot number in updatesym()");
+    // Check for valid pointer
+    if (head == NULL || tail == NULL || node == NULL)
+        fatal("Either head, tail or node is NULL in appendsym");
 
-    Symtable[slot].name = strdup(name);
-    Symtable[slot].type = type;
-    Symtable[slot].stype = stype;
-    Symtable[slot].class = class;
-    Symtable[slot].size = size;
-    Symtable[slot].posn = posn;
-}
-
-// Determine if the symbol s is in the global symbol table.
-// Return its slot position or -1 if not found.
-int findglob(char *s)
-{
-    int i;
-
-    for (i = 0; i < Globs; i++)
+    // Append to the list
+    if (*tail)
     {
-        if (Symtable[i].class == C_PARAM)
-            continue;
-        if (*s == *Symtable[i].name && !strcmp(s, Symtable[i].name))
-        {
-            return (i);
-        }
+        (*tail)->next = node;
+        *tail = node;
     }
+    else
+        *head = *tail = node;
 
-    return (-1);
+    node->next = NULL;
 }
 
-// Get the position of a new global symbol slot, or die
-// if we've run out of positions.
-static int newglob(void)
+// Crate a symbol node to be added to a symbol table list
+// Set up the node's:
+// + type: char, int etc
+// + structural type: var, function, array etc.
+// + size: number of elements, or endlabel
+// + posn: Position information for local symbols
+// Return a pointer to the new node
+struct symtable *newsym(char *name, int type, int stype, int class, int size, int posn)
 {
-    int p;
+    // Get a new node
+    struct symtable *node = (struct symtable *)malloc(sizeof(struct symtable));
+    if (node == NULL)
+        fatal("Unable to malloc a symbol table node in newsym");
 
-    if ((p = Globs++) >= Locls)
-        fatal("Too many global symbols");
+    // Fill in the values
+    node->name = strdup(name);
+    node->type = type;
+    node->stype = stype;
+    node->class = class;
+    node->size = size;
+    node->posn = posn;
+    node->next = NULL;
+    node->member = NULL;
 
-    return (p);
+    // Generate any global space
+    if (class == C_GLOBAL)
+        genglobsym(node);
+
+    return (node);
 }
 
 // Add a global symbol to the symbol table. Set up its:
@@ -60,108 +59,107 @@ static int newglob(void)
 // + size: number of elements
 // + endlabel: if this is a function
 // Return the slot number in the symbol table
-int addglob(char *name, int type, int stype, int class, int size)
+struct symtable *addglob(char *name, int type, int stype, int class, int size)
 {
-    int slot;
-
-    // If this is already in the symbol table, return the existing slot
-    if ((slot = findglob(name)) != -1)
-        return slot;
-
-    // Otherwise get a new slot, fill it
-    slot = newglob();
-    updatesym(slot, name, type, stype, class, size, 0);
-
-    // Generate the assembly for the symbol if it's global
-    if (class == C_GLOBAL)
-        genglobsym(slot);
-
-    // Return the slot number
-    return (slot);
-}
-
-// Get the position of a new local symbol slot, or die
-// if we've run out of positions.
-static int newlocl(void)
-{
-    int p;
-
-    if ((p = Locls--) <= Globs)
-        fatal("Too many local symbols");
-
-    return (p);
+    struct symtable *sym = newsym(name, type, stype, class, size, 0);
+    appendsym(&Globhead, &Globtail, sym);
+    return (sym);
 }
 
 // Clear all the entries in the local symbol table
 void freeloclsyms(void)
 {
-    Locls = NSYMBOLS - 1;
+    Loclhead = Locltail = NULL;
+    Parmhead = Parmtail = NULL;
+    Functionid = NULL;
 }
 
-// Add a local symbol to the symbol table. Set up its:
-// + type: char, int etc.
-// + structural type: var, function, array etc.
-// + size: number of elements
-// Return the slot number if the symbol table
-int addlocl(char *name, int type, int stype, int class, int size)
+// Add a symbol to the local symbol list
+struct symtable *addlocl(char *name, int type, int stype, int class, int size)
 {
-    int localslot;
+    struct symtable *sym = newsym(name, type, stype, class, size, 0);
+    appendsym(&Loclhead, &Locltail, sym);
+    return (sym);
+}
 
-    // If this is already in the symbol table, return an error
-    if ((localslot = findlocl(name)) != -1)
-        return (-1);
+// Add a symbol to parameter list
+struct symtable *addparm(char *name, int type, int stype, int class, int size)
+{
+    struct symtable *sym = newsym(name, type, stype, class, size, 0);
+    appendsym(&Parmhead, &Parmtail, sym);
+    return (sym);
+}
 
-    // Otherwise get a new symbol slot and a position for this local.
-    // Update the local symbol table entry.
-    localslot = newlocl();
-    updatesym(localslot, name, type, stype, class, size, 0);
+// Search for a symbol in a specific list.
+// Return a pointer to found node or NULL if not found.
+static struct symtable *findsyminlist(char *s, struct symtable *list)
+{
+    for (; list != NULL; list = list->next)
+    {
+        if ((list->name != NULL) && !strcmp(s, list->name))
+            return (list);
+    }
+    return (NULL);
+}
 
-    // Return the local symbol's slot
-    return (localslot);
+// Determine if the symbol s is in the global symbol table.
+// Return a pointer to the found node or NULL if not found.
+struct symtable *findglob(char *s)
+{
+    return (findsyminlist(s, Globhead));
 }
 
 // Determine if the symbol s is in the local symbol table.
-// Return its slot position or -1 if not found.
-int findlocl(char *s)
+// Return a pointer to the found node or NULL if not found.
+struct symtable *findlocl(char *s)
 {
-    int i;
-    for (i = Locls + 1; i < NSYMBOLS; i++)
+    struct symtable *node;
+
+    // Look for a parameter if we are in a function's body
+    if (Functionid)
     {
-        if (*s == *Symtable[i].name && !strcmp(s, Symtable[i].name))
-            return (i);
+        node = findsyminlist(s, Functionid->member);
+        if (node)
+            return (node);
     }
 
-    return (-1);
+    return (findsyminlist(s, Loclhead));
 }
 
 // Determine if the symbol is in the symbol table.
-// Return its slot position or -1 if not found.
-int findsymbol(char *s)
+// Return its slot position or NULL if not found.
+struct symtable *findsymbol(char *s)
 {
-    int slot;
+    struct symtable *node;
 
-    slot = findlocl(s);
-    if (slot == -1)
-        slot = findglob(s);
+    // Look for a parameter if we are in a function's body
+    if (Functionid)
+    {
+        node = findsyminlist(s, Functionid->member);
+        if (node)
+            return (node);
+    }
 
-    return (slot);
+    // Otherwise, try the local and global lists
+    node = findsyminlist(s, Loclhead);
+    if (node)
+        return (node);
+
+    return (findsyminlist(s, Globhead));
 }
 
-// Given a function's slot number, copy the global parameters
-// from its prototype to be local parameters
-void copyfuncparams(int slot)
+// Find a composite type.
+// Return a pointer to the found node or NULL if not found.
+struct symtable *findcomposite(char *s)
 {
-    int i, id = slot + 1;
-
-    for (i = 0; i < Symtable[slot].nelems; i++, id++)
-    {
-        addlocl(Symtable[id].name, Symtable[id].type, Symtable[id].stype, Symtable[id].class, Symtable[id].size);
-    }
+    return (findsyminlist(s, Comphead));
 }
 
 // Reset the contents of the symbol table
 void clear_symtable(void)
 {
-    Globs = 0;
-    Locls = NSYMBOLS - 1;
+    Globhead = Globtail = NULL;
+    Loclhead = Locltail = NULL;
+    Parmhead = Parmtail = NULL;
+    Comphead = Comptail = NULL;
 }

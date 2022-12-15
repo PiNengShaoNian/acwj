@@ -5,6 +5,7 @@
         "string.h": "c",
         "data.h": "c",
         "type_traits": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "typeinfo": "c"
     }
 }

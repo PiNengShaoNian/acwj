@@ -92,8 +92,22 @@ void global_declarations(void)
 //
 // Parse the declaration of a variable.
 // The identifier has been scanned & we have the type
-void var_declaration(int type, int class)
+struct symtable *var_declaration(int type, int class)
 {
+    struct symtable *sym = NULL;
+
+    // See if this has already been declared
+    switch (class)
+    {
+    case C_GLOBAL:
+        if (findglob(Text) != NULL)
+            fatals("Duplicated global variable declaration", Text);
+    case C_LOCAL:
+    case C_PARAM:
+        if (findlocl(Text) != NULL)
+            fatals("Duplicate local variable declaration", Text);
+    }
+
     // Text now has the identifier's name.
     // If the next token is a '['
     if (Token.token == T_LBRACKET)
@@ -106,13 +120,14 @@ void var_declaration(int type, int class)
         {
             // Add this as a known array and generate its space in assembly.
             // We treat the array as a pointer to its elements' type
-            if (class == C_LOCAL)
+            switch (class)
             {
-                fatal("For now, declaration of local arrays is not implemented");
-            }
-            else
-            {
+            case C_GLOBAL:
                 addglob(Text, pointer_to(type), S_ARRAY, class, Token.intvalue);
+                break;
+            case C_LOCAL:
+            case C_PARAM:
+                fatal("For now, declaration of local arrays is not implemented");
             }
         }
 
@@ -124,16 +139,21 @@ void var_declaration(int type, int class)
     {
         // Add it as a known identifier
         // and generate its space in assembly
-        if (class == C_LOCAL)
+        switch (class)
         {
-            if (addlocl(Text, type, S_VARIABLE, class, 1) == -1)
-                fatals("Duplicate local variable declaration", Text);
-        }
-        else
-        {
+        case C_GLOBAL:
             addglob(Text, type, S_VARIABLE, class, 1);
+            break;
+        case C_LOCAL:
+            sym = addlocl(Text, type, S_VARIABLE, class, 1);
+            break;
+        case C_PARAM:
+            sym = addparm(Text, type, S_VARIABLE, class, 1);
+            break;
         }
     }
+
+    return (sym);
 }
 
 // param_declaration: <null>
@@ -142,22 +162,18 @@ void var_declaration(int type, int class)
 //
 // Parse the parameters in parentheses after the function name.
 // Add them as symbols to the symbol table and return the number
-// of parameters. If id is not -1, there is an existing function
+// of parameters. If id is not NULL, there is an existing function
 // prototype, and the function has this symbol slot number.
-static int param_declaration(int id)
+static int param_declaration(struct symtable *funcsym)
 {
-    int type, param_id;
-    int orig_paramcnt;
+    int type;
     int paramcnt = 0;
+    struct symtable *protoptr = NULL;
 
-    // Add 1 to id so that it's either zero (no prototype), or
-    // it's the position of the zeroth existing parameter in
-    // the symbol table
-    param_id = id + 1;
-
-    // Get any existing prototype parameter count
-    if (param_id)
-        orig_paramcnt = Symtable[id].nelems;
+    // If there is a prototype, get the pointer
+    // to the first prototype parameter
+    if (funcsym != NULL)
+        protoptr = funcsym->member;
 
     // Loop until the final right parentheses
     while (Token.token != T_RPAREN)
@@ -169,11 +185,11 @@ static int param_declaration(int id)
 
         // We have an existing prototype.
         // Check that this type matches the prototype.
-        if (param_id)
+        if (protoptr != NULL)
         {
-            if (type != Symtable[id].type)
+            if (type != protoptr->type)
                 fatald("Type doesn't match prototype for parameter", paramcnt + 1);
-            param_id++;
+            protoptr = protoptr->next;
         }
         else
         {
@@ -198,8 +214,8 @@ static int param_declaration(int id)
 
     // Check that the number of parameters in this list matches
     // any existing prototype
-    if ((id != -1) && (paramcnt != orig_paramcnt))
-        fatals("Parameter count mismatch for function", Symtable[id].name);
+    if ((funcsym != NULL) && (paramcnt != funcsym->nelems))
+        fatals("Parameter count mismatch for function", funcsym->name);
 
     // Return the count of parameters
     return (paramcnt);
@@ -214,34 +230,42 @@ static int param_declaration(int id)
 struct ASTnode *function_declaration(int type)
 {
     struct ASTnode *tree, *finalstmt;
-    int id;
-    int nameslot, endlabel, paramcnt;
+    struct symtable *oldfuncsym, *newfuncsym = NULL;
+    int endlabel, paramcnt;
 
     // Text has the identifier's name. If this exists and is a
-    // function, get the id. Otherwise, set id to -1
-    if ((id = findsymbol(Text)) != -1)
-        if (Symtable[id].stype != S_FUNCTION)
-            id = -1;
+    // function, get the id. Otherwise, set id to NULL
+    if ((oldfuncsym = findsymbol(Text)) != NULL)
+        if (oldfuncsym->stype != S_FUNCTION)
+            oldfuncsym = NULL;
 
     // If this is a new function declaration, get a
     // label-id for the end label, and add the function
     // to the symbol table,
-    if (id == -1)
+    if (oldfuncsym == NULL)
     {
         endlabel = genlabel();
-        nameslot = addglob(Text, type, S_FUNCTION, C_GLOBAL, endlabel);
+        newfuncsym = addglob(Text, type, S_FUNCTION, C_GLOBAL, endlabel);
     }
 
     // Scan in the '(', any parameters and the ')'.
     // Pass in any existing function prototype symbol slot number
     lparen();
-    paramcnt = param_declaration(id);
+    paramcnt = param_declaration(oldfuncsym);
     rparen();
 
     // If this is a new function declaration, update the
-    // function symbol entry with the number of parameters
-    if (id == -1)
-        Symtable[nameslot].nelems = paramcnt;
+    // function symbol entry with the number of parameters.
+    // Also copy the parameter list into the function's node
+    if (newfuncsym)
+    {
+        newfuncsym->nelems = paramcnt;
+        newfuncsym->member = Parmhead;
+        oldfuncsym = newfuncsym;
+    }
+
+    // Clear out the parameter list
+    Parmhead = Parmtail = NULL;
 
     // Declaration ends in a semicolon, only a prototype.
     if (Token.token == T_SEMI)
@@ -251,13 +275,8 @@ struct ASTnode *function_declaration(int type)
     }
 
     // This is not just a prototype.
-    // Copy the global parameters to be local parameters
-    if (id == -1)
-        id = nameslot;
-    copyfuncparams(id);
-
-    // Set the Functionid global to the function's symbol-id
-    Functionid = id;
+    // Set the Functionid global to the function's symbol pointer
+    Functionid = oldfuncsym;
 
     // Get the AST tree for the compound statement
     tree = compound_statement();
@@ -280,5 +299,5 @@ struct ASTnode *function_declaration(int type)
 
     // Return an A_FUNCTION node which has the function's id
     // and the compound statement sub-tree
-    return mkastunary(A_FUNCTION, type, tree, id);
+    return (mkastunary(A_FUNCTION, type, tree, oldfuncsym, endlabel));
 }

@@ -138,11 +138,12 @@ struct ASTnode
     struct ASTnode *left; // Left, middle and right child trees
     struct ASTnode *mid;
     struct ASTnode *right;
+    struct symtable *sym; // For any AST nodes, the pointer to
+                          // the symbol in the symbol table
     union
     {
         int intvalue; // For A_INTLIT, the integer value
-        int id;       // For A_IDENT, the symbol slot number
-        int size;
+        int size;     // For A_SCALE, the size to scale by
     };
 };
 
@@ -165,14 +166,16 @@ enum
 // Symbol table structure
 struct symtable
 {
-    char *name; // Name of a symbol
-    int type;   // Primitive type for the symbol
-    int stype;  // Structural type for the symbol
-    int class;  // Storage class for the symbol
+    char *name;             // Name of a symbol
+    int type;               // Primitive type for the symbol
+    struct symtable *ctype; // If needed, pointer to the composite type
+    int stype;              // Structural type for the symbol
+    int class;              // Storage class for the symbol
     union
     {
         int size;     // Number of elements in the symbol
         int endlabel; // For functions, the end label
+        int intvalue; // For enum symbols, the associated value
     };
     union
     {
@@ -180,6 +183,8 @@ struct symtable
         int posn;   // For locals, the negative offset
                     // from the stack base pointer
     };
+    struct symtable *next;   // Next symbol in one line
+    struct symtable *member; // First parameter of a function
 };
 
 #define NOREG -1  // Use NOREG when the AST generation

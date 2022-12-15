@@ -6,40 +6,47 @@ int scan(struct token *t);
 struct ASTnode *mkastnode(int op, int type,
                           struct ASTnode *left,
                           struct ASTnode *mid,
-                          struct ASTnode *right, int intvalue);
-struct ASTnode *mkastleaf(int op, int type, int intvalue);
-struct ASTnode *mkastunary(int op, int type, struct ASTnode *left, int intvalue);
+                          struct ASTnode *right,
+                          struct symtable *sym, int intvalue);
+struct ASTnode *mkastleaf(int op, int type,
+                          struct symtable *sym, int intvalue);
+struct ASTnode *mkastunary(int op, int type, struct ASTnode *left,
+                           struct symtable *sym, int intvalue);
 void dumpAST(struct ASTnode *n, int label, int parentASTop);
 
 // gen.c
+int genlabel(void);
 int genAST(struct ASTnode *n, int reg, int parentASTop);
 void genpreamble();
 void genpostamble();
 void genfreeregs();
-void genprintint(int reg);
-void genglobsym(int ind);
+void genglobsym(struct symtable *node);
 int genglobstr(char *strvalue);
-int genlabel(void);
 int genprimsize(int type);
+void genreturn(int reg, int id);
 
 // cg.c
-void freeall_registers();
+void cgtextseg();
+void cgdataseg();
+void freeall_registers(void);
 void cgpreamble();
 void cgpostamble();
-void cgfuncpreamble(int id);
-void cgfuncpostamble(int id);
+void cgfuncpreamble(struct symtable *sym);
+void cgfuncpostamble(struct symtable *sym);
 int cgloadint(int value, int type);
-int cgloadglob(int id, int op);
-int cgloadlocal(int id, int op);
-int cgloadglobstr(int id);
+int cgloadglob(struct symtable *sym, int op);
+int cgloadlocal(struct symtable *sym, int op);
+int cgloadglobstr(int label);
 int cgadd(int r1, int r2);
 int cgsub(int r1, int r2);
 int cgmul(int r1, int r2);
 int cgdiv(int r1, int r2);
-void cgprintint(int r);
-int cgstorglob(int r, int id);
-int cgstorlocal(int r, int id);
-void cgglobsym(int id);
+int cgshlconst(int r, int val);
+int cgcall(struct symtable *sym, int numargs);
+void cgcopyarg(int r, int argposn);
+int cgstorglob(int r, struct symtable *sym);
+int cgstorlocal(int r, struct symtable *sym);
+void cgglobsym(struct symtable *node);
 void cgglobstr(int l, char *strvalue);
 int cgcompare_and_set(int ASTop, int r1, int r2);
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
@@ -47,12 +54,9 @@ void cglabel(int l);
 void cgjump(int l);
 int cgwiden(int r, int oldtype, int newtype);
 int cgprimsize(int type);
-void cgreturn(int reg, int id);
-int cgcall(int id, int numargs);
-void cgcopyarg(int r, int argposn);
-int cgaddress(int id);
+void cgreturn(int reg, struct symtable *sym);
+int cgaddress(struct symtable *sym);
 int cgderef(int r, int type);
-int cgshlconst(int r, int val);
 int cgstorderef(int r1, int r2, int type);
 int cgnegate(int r);
 int cginvert(int r);
@@ -63,7 +67,6 @@ int cgor(int r1, int r2);
 int cgxor(int r1, int r2);
 int cgshl(int r1, int r2);
 int cgshr(int r1, int r2);
-int newlocaloffset(int type);
 
 // expr.c
 struct ASTnode *binexpr(int rbp);
@@ -85,17 +88,25 @@ void fatald(char *s, int d);
 void fatalc(char *s, int c);
 
 // sym.c
-int findglob(char *s);
-int findlocl(char *s);
-int findsymbol(char *s);
-int addglob(char *name, int type, int stype, int class, int size);
-int addlocl(char *name, int type, int stype, int class, int size);
-void freeloclsyms(void);
-void copyfuncparams(int slot);
+void appendsym(struct symtable **head, struct symtable **tail,
+               struct symtable *node);
+struct symtable *newsym(char *name, int type, int stype, int class,
+                        int size, int posn);
+struct symtable *addglob(char *name, int type, int stype,
+                         int class, int size);
+struct symtable *addlocl(char *name, int type, int stype,
+                         int class, int size);
+struct symtable *addparm(char *name, int type, int stype,
+                         int class, int size);
+struct symtable *findglob(char *s);
+struct symtable *findlocl(char *s);
+struct symtable *findsymbol(char *s);
+struct symtable *findcomposite(char *s);
 void clear_symtable(void);
+void freeloclsyms(void);
 
 // decl.c
-void var_declaration(int type, int class);
+struct symtable *var_declaration(int type, int class);
 struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 
