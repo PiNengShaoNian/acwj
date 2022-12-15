@@ -57,6 +57,7 @@ enum
     T_WHILE,
     T_FOR,
     T_RETURN,
+    T_STRUCT,
 
     // Structural tokens
     T_INTLIT,
@@ -126,7 +127,8 @@ enum
     P_VOID = 16,
     P_CHAR = 32,
     P_INT = 48,
-    P_LONG = 64
+    P_LONG = 64,
+    P_STRUCT = 80
 };
 
 // Abstract Syntax Tree structure
@@ -160,7 +162,9 @@ enum
 {
     C_GLOBAL = 1, // Globally visible symbol
     C_LOCAL,      // Locally visible symbol
-    C_PARAM       // Locally visible function parameter
+    C_PARAM,      // Locally visible function parameter
+    C_STRUCT,     // A struct
+    C_MEMBER      // Member of a struct or union
 };
 
 // Symbol table structure

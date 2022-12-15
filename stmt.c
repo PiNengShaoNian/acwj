@@ -144,6 +144,7 @@ static struct ASTnode *return_statement(void)
 static struct ASTnode *single_statement(void)
 {
     int type;
+    struct symtable *ctype;
 
     switch (Token.token)
     {
@@ -153,9 +154,9 @@ static struct ASTnode *single_statement(void)
         // The beginning of a variable declaration.
         // Parse the type and get the identifier.
         // Then parse the rest of the declaration.
-        type = parse_type();
+        type = parse_type(&ctype);
         ident();
-        var_declaration(type, C_LOCAL);
+        var_declaration(type, ctype, C_LOCAL);
         semi();
         return (NULL); // No AST generated here
     case T_IF:

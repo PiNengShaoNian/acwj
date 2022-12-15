@@ -33,6 +33,16 @@ int ptrtype(int type)
     return ((type & 0xf) != 0);
 }
 
+// Given a type and a composite type pointer, return
+// the size of this type in bytes
+int typesize(int type, struct symtable *ctype)
+{
+    if (type == P_STRUCT)
+        return (ctype->size);
+
+    return (genprimsize(type));
+}
+
 // Given an AST tree and a type which we want it to become,
 // possibly modify the tree by widening or scaling so that
 // it is compatible with this type. Return the original tree

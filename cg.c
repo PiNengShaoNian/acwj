@@ -28,6 +28,37 @@ void cgdataseg()
     }
 }
 
+// Given a scalar type, an existing memory offset
+// (which hasn't been allocated to anything yet)
+// and a direction (1 is up, -1 is down), calculate
+// and return a suitably aligned memory offset
+// for this scalar type. This could be the original
+// offset, or it could be above/below the original
+int cgalign(int type, int offset, int direction)
+{
+    int alignment;
+
+    // We don't need to do this on x86-64, but let's
+    // align chars on any offset and align ints/pointers
+    // on a 4-byte alignment
+    switch (type)
+    {
+    case P_CHAR:
+        return (offset);
+    case P_INT:
+    case P_LONG:
+        break;
+    default:
+        fatald("Bad type in calc_aligned_offset:", type);
+    }
+
+    // Here we have an int or a long. Align it on a 4-byte offset
+    // I put the generic code here so it can be reused elsewhere.
+    alignment = 4;
+    offset = (offset + direction * (alignment - 1)) & ~(alignment - 1);
+    return (offset);
+}
+
 // Position of next local variable relative to stack base pointer.
 // We store the offset as positive to make aligning the stack easier
 static int localOffset;
@@ -265,7 +296,7 @@ int cgstorglob(int r, struct symtable *sym)
 // Generate a global symbol
 void cgglobsym(struct symtable *node)
 {
-    int typesize;
+    int size;
 
     if (node == NULL)
         return;
@@ -274,7 +305,7 @@ void cgglobsym(struct symtable *node)
         return;
 
     // Get the size of the type
-    typesize = cgprimsize(node->type);
+    size = typesize(node->type, node->ctype);
 
     // Generate the global identity and the label
     cgdataseg();
@@ -284,7 +315,7 @@ void cgglobsym(struct symtable *node)
     // Generate the space
     for (int i = 0; i < node->size; i++)
     {
-        switch (typesize)
+        switch (size)
         {
         case 1:
             fprintf(Outfile, "\t.byte\t0\n");
@@ -296,7 +327,8 @@ void cgglobsym(struct symtable *node)
             fprintf(Outfile, "\t.quad\t0\n");
             break;
         default:
-            fatald("Unknown typesize in cgglobsym: ", typesize);
+            for (int i = 0; i < size; i++)
+                fprintf(Outfile, "\t.byte\t0\n");
         }
     }
 }

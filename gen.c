@@ -325,3 +325,8 @@ static int gen_funccall(struct ASTnode *n)
     // and return its result
     return (cgcall(n->sym, numargs));
 }
+
+int genalign(int type, int offset, int direction)
+{
+    return (cgalign(type, offset, direction));
+}
