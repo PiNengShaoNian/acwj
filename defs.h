@@ -70,7 +70,9 @@ enum
     T_RPAREN,
     T_LBRACKET,
     T_RBRACKET,
-    T_COMMA
+    T_COMMA,
+    T_DOT,
+    T_ARROW
 };
 
 // AST node types. The first few line up
