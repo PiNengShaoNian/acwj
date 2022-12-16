@@ -20,8 +20,9 @@ extern_ int O_dolink;   // If true, link the object files
 extern_ int O_verbose;  // If true, print info on compilation stages
 
 // Symbol table lists
-struct symtable *Globhead, *Globtail;     // Global variables and functions
-struct symtable *Loclhead, *Locltail;     // Local variables
-struct symtable *Parmhead, *Parmtail;     // Local Parameters
-struct symtable *Membhead, *Membtail;     // Temp list of struct/union members
-struct symtable *Structhead, *Structtail; // List of struct types
+extern_ struct symtable *Globhead, *Globtail;     // Global variables and functions
+extern_ struct symtable *Loclhead, *Locltail;     // Local variables
+extern_ struct symtable *Parmhead, *Parmtail;     // Local Parameters
+extern_ struct symtable *Membhead, *Membtail;     // Temp list of struct/union members
+extern_ struct symtable *Structhead, *Structtail; // List of struct types
+extern_ struct symtable *Unionhead, *Uniontail;   // List of struct types

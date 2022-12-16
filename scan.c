@@ -110,6 +110,10 @@ static int keyword(char *s)
         if (!strcmp(s, "struct"))
             return (T_STRUCT);
         break;
+    case 'u':
+        if (!strcmp(s, "union"))
+            return (T_UNION);
+        break;
     }
 
     return 0;

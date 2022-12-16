@@ -2,7 +2,7 @@
 #include "data.h"
 #include "decl.h"
 
-static struct symtable *struct_declaration(void);
+static struct symtable *composite_declaration(int type);
 
 // Parse the current token and
 // return a primitive type enum value.
@@ -30,7 +30,11 @@ int parse_type(struct symtable **ctype)
         break;
     case T_STRUCT:
         type = P_STRUCT;
-        *ctype = struct_declaration();
+        *ctype = composite_declaration(P_STRUCT);
+        break;
+    case T_UNION:
+        type = P_UNION;
+        *ctype = composite_declaration(P_UNION);
         break;
     default:
         fatald("Illegal type, token", Token.token);
@@ -140,6 +144,9 @@ void global_declarations(void)
 
     while (1)
     {
+        if (Token.token == T_EOF)
+            break;
+
         // We have to read past the type and identifier
         // to see either a '(' for a function declaration
         // or a ',' or ';' for a variable declaration.
@@ -151,7 +158,7 @@ void global_declarations(void)
         // might be a ';'. Loop back if it is. XXX. I'm
         // not happy with this as it allow "struct fred;"
         // as an accepted statement
-        if (type == P_STRUCT && Token.token == T_SEMI)
+        if ((type == P_STRUCT || type == P_UNION) && Token.token == T_SEMI)
         {
             scan(&Token);
             continue;
@@ -190,9 +197,6 @@ void global_declarations(void)
             var_declaration(type, ctype, C_GLOBAL);
             semi();
         }
-
-        if (Token.token == T_EOF)
-            break;
     }
 }
 
@@ -341,7 +345,7 @@ struct ASTnode *function_declaration(int type)
 // Parse struct declarations. Either find an existing
 // struct declaration, or build a struct symbol table
 // entry and return its pointer.
-static struct symtable *struct_declaration(void)
+static struct symtable *composite_declaration(int type)
 {
     struct symtable *ctype = NULL;
     struct symtable *m;
@@ -354,27 +358,33 @@ static struct symtable *struct_declaration(void)
     if (Token.token == T_IDENT)
     {
         // Find any matching composite type
-        ctype = findstruct(Text);
+        if (type == P_STRUCT)
+            ctype = findstruct(Text);
+        else
+            ctype = findunion(Text);
         scan(&Token);
     }
 
     // If the next token isn't an LBRACE, this is
-    // the usage of an existing struct type.
+    // the usage of an existing struct/union type.
     // Return the pointer to the type.
     if (Token.token != T_LBRACE)
     {
         if (ctype == NULL)
-            fatals("unknown struct type", Text);
+            fatals("unknown struct/union type", Text);
         return (ctype);
     }
 
     // Ensure this struct type hasn't been
     // previously defined
     if (ctype)
-        fatals("previously defined struct", Text);
+        fatals("previously defined struct/union", Text);
 
     // Build the struct node and skip the left brace
-    ctype = addstruct(Text, P_STRUCT, NULL, 0, 0);
+    if (type == P_STRUCT)
+        ctype = addstruct(Text, P_STRUCT, NULL, 0, 0);
+    else
+        ctype = addunion(Text, P_UNION, NULL, 0, 0);
     scan(&Token);
 
     // Scan in the list of members and attach
@@ -394,10 +404,13 @@ static struct symtable *struct_declaration(void)
     for (m = m->next; m != NULL; m = m->next)
     {
         // Set the offset for this member
-        m->posn = genalign(m->type, offset, 1);
+        if (type == P_STRUCT)
+            m->posn = genalign(m->type, offset, 1);
+        else
+            m->posn = 0;
 
         // Get the offset of the next free byte after this member
-        offset += typesize(m->type, m->ctype);
+        offset = m->posn + typesize(m->type, m->ctype);
     }
 
     // Set the overall size of the struct
