@@ -30,6 +30,12 @@ void ident(void)
     match(T_IDENT, "identifier");
 }
 
+// Match a comma and fetch the next token
+void comma(void)
+{
+    match(T_COMMA, "comma");
+}
+
 // Match a left brace and fetch the next token
 void lbrace(void)
 {

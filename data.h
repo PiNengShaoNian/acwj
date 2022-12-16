@@ -26,3 +26,5 @@ extern_ struct symtable *Parmhead, *Parmtail;     // Local Parameters
 extern_ struct symtable *Membhead, *Membtail;     // Temp list of struct/union members
 extern_ struct symtable *Structhead, *Structtail; // List of struct types
 extern_ struct symtable *Unionhead, *Uniontail;   // List of struct types
+extern_ struct symtable *Enumhead, *Enumtail;     // List of enum types and values
+extern_ struct symtable *Typehead, *Typetail;     // List of typedefs
