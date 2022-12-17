@@ -96,6 +96,10 @@ static int keyword(char *s)
 {
     switch (*s)
     {
+    case 'b':
+        if (!strcmp(s, "break"))
+            return (T_BREAK);
+        break;
     case 'i':
         if (!strcmp(s, "int"))
             return T_INT;
@@ -124,6 +128,9 @@ static int keyword(char *s)
     case 'c':
         if (!strcmp(s, "char"))
             return T_CHAR;
+        if (!strcmp(s, "continue"))
+            return (T_CONTINUE);
+        break;
     case 'l':
         if (!strcmp(s, "long"))
             return T_LONG;

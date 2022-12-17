@@ -67,6 +67,8 @@ enum
     T_ENUM,
     T_TYPEDEF,
     T_EXTERN,
+    T_BREAK,
+    T_CONTINUE,
 
     // Structural tokens
     T_INTLIT,
@@ -126,7 +128,9 @@ enum
     A_NEGATE,
     A_INVERT,
     A_LOGNOT,
-    A_TOBOOL
+    A_TOBOOL,
+    A_BREAK,
+    A_CONTINUE
 };
 
 // Primitive types. Then bottom 4 bits is an integer

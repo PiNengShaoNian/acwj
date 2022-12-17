@@ -13,6 +13,7 @@ extern_ char *Outfilename; // Name of file we opened as Outfile
 extern_ struct token Token;
 extern_ char Text[TEXTLEN];
 extern_ struct symtable *Functionid; // Symbol id of the current function
+extern_ int Looplevel;               // Symbol id of the current function
 
 extern_ int O_dumpAST;  // If true, dump the AST trees
 extern_ int O_keepasm;  // If true, keep any assembly files
