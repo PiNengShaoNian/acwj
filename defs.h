@@ -7,6 +7,11 @@
 #define AOUT "a.out"
 #define ASCMD "as -o "
 #define LDCMD "cc -o "
+#define CPPCMD "cpp -nostdinc -isystem "
+
+#ifndef INCDIR
+#define INCDIR ""
+#endif
 
 struct token
 {
@@ -61,6 +66,7 @@ enum
     T_UNION,
     T_ENUM,
     T_TYPEDEF,
+    T_EXTERN,
 
     // Structural tokens
     T_INTLIT,
@@ -169,6 +175,7 @@ enum
     C_GLOBAL = 1, // Globally visible symbol
     C_LOCAL,      // Locally visible symbol
     C_PARAM,      // Locally visible function parameter
+    C_EXTERN,     // External globally visible symbol
     C_STRUCT,     // A struct
     C_UNION,      // A union
     C_MEMBER,     // Member of a struct or union

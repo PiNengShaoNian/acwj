@@ -7,12 +7,30 @@ static void enum_declaration(void);
 int typedef_declaration(struct symtable **ctype);
 int type_of_typedef(char *name, struct symtable **ctype);
 
-// Parse the current token and
-// return a primitive type enum value.
-// Also scan in the next token
-int parse_type(struct symtable **ctype)
+// Parse the current token and return a
+// primitive type enum value, a pointer
+// to any composite type and possibly
+// modify the class of the type.
+// Also scan in the next token.
+int parse_type(struct symtable **ctype, int *class)
 {
-    int type;
+    int type, exstatic = 1;
+
+    // See if the class has been changed to extern (later, static)
+    while (exstatic)
+    {
+        switch (Token.token)
+        {
+        case T_EXTERN:
+            *class = C_EXTERN;
+            scan(&Token);
+            break;
+        default:
+            exstatic = 0;
+        }
+    }
+
+    // Now work on the actual type keyword
     switch (Token.token)
     {
     case T_VOID:
@@ -94,6 +112,7 @@ struct symtable *var_declaration(int type, struct symtable *ctype, int class)
     // See if this has already been declared
     switch (class)
     {
+    case C_EXTERN:
     case C_GLOBAL:
         if (findglob(Text) != NULL)
             fatals("Duplicated global variable declaration", Text);
@@ -120,8 +139,9 @@ struct symtable *var_declaration(int type, struct symtable *ctype, int class)
             // We treat the array as a pointer to its elements' type
             switch (class)
             {
+            case C_EXTERN:
             case C_GLOBAL:
-                addglob(Text, pointer_to(type), ctype, S_ARRAY, Token.intvalue);
+                addglob(Text, pointer_to(type), ctype, S_ARRAY, class, Token.intvalue);
                 break;
             case C_LOCAL:
             case C_PARAM:
@@ -140,8 +160,9 @@ struct symtable *var_declaration(int type, struct symtable *ctype, int class)
         // and generate its space in assembly
         switch (class)
         {
+        case C_EXTERN:
         case C_GLOBAL:
-            sym = addglob(Text, type, ctype, S_VARIABLE, 1);
+            sym = addglob(Text, type, ctype, S_VARIABLE, class, 1);
             break;
         case C_LOCAL:
             sym = addlocl(Text, type, ctype, S_VARIABLE, 1);
@@ -164,7 +185,7 @@ void global_declarations(void)
 {
     struct ASTnode *tree;
     struct symtable *ctype;
-    int type;
+    int type, class = C_GLOBAL;
 
     while (1)
     {
@@ -172,7 +193,7 @@ void global_declarations(void)
             break;
 
         // Get the type
-        type = parse_type(&ctype);
+        type = parse_type(&ctype, &class);
 
         // We might have just parsed a struct declaration
         // with no associated variable. the next token
@@ -215,7 +236,7 @@ void global_declarations(void)
         {
             // Parse the global variable declaration
             // and skip past the trailing semicolon
-            var_declaration(type, ctype, C_GLOBAL);
+            var_declaration(type, ctype, class);
             semi();
         }
     }
@@ -248,7 +269,7 @@ static int var_declaration_list(struct symtable *funcsym, int class, int separat
     while (Token.token != end_token)
     {
         // Get the type and identifier
-        type = parse_type(&ctype);
+        type = parse_type(&ctype, &class);
         ident();
 
         // Check that this type matches the prototype if there is one
@@ -306,7 +327,7 @@ struct ASTnode *function_declaration(int type)
     if (oldfuncsym == NULL)
     {
         endlabel = genlabel();
-        newfuncsym = addglob(Text, type, NULL, S_FUNCTION, endlabel);
+        newfuncsym = addglob(Text, type, NULL, S_FUNCTION, C_GLOBAL, endlabel);
     }
 
     // Scan in the '(', any parameters and the ')'.
@@ -521,13 +542,16 @@ static void enum_declaration(void)
 // and ctype that it represents
 int typedef_declaration(struct symtable **ctype)
 {
-    int type;
+    int type, class = 0;
 
     // Skip the typedef keyword.
     scan(&Token);
 
     // Get the actual type following the keyword
-    type = parse_type(ctype);
+    type = parse_type(ctype, &class);
+
+    if (class != 0)
+        fatal("Can't have extern in a typedef declaration");
 
     // See if the typedef identifier already exists
     if (findtypedef(Text) != NULL)

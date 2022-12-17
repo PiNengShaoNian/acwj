@@ -6,6 +6,8 @@
         "data.h": "c",
         "type_traits": "c",
         "unistd.h": "c",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "errno.h": "c",
+        "stdio.h": "c"
     }
 }

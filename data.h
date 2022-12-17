@@ -8,6 +8,7 @@ extern_ int Line;
 extern_ int Putback;
 extern_ FILE *Infile;
 extern_ FILE *Outfile;
+extern_ char *Infilename;  // Name of file we are parsing
 extern_ char *Outfilename; // Name of file we opened as Outfile
 extern_ struct token Token;
 extern_ char Text[TEXTLEN];
