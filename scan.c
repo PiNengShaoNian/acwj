@@ -100,11 +100,17 @@ static int keyword(char *s)
         if (!strcmp(s, "break"))
             return (T_BREAK);
         break;
-    case 'i':
-        if (!strcmp(s, "int"))
-            return T_INT;
-        if (!strcmp(s, "if"))
-            return T_IF;
+    case 'c':
+        if (!strcmp(s, "case"))
+            return (T_CASE);
+        if (!strcmp(s, "char"))
+            return T_CHAR;
+        if (!strcmp(s, "continue"))
+            return (T_CONTINUE);
+        break;
+    case 'd':
+        if (!strcmp(s, "default"))
+            return (T_DEFAULT);
         break;
     case 'e':
         if (!strcmp(s, "else"))
@@ -114,22 +120,23 @@ static int keyword(char *s)
         if (!strcmp(s, "extern"))
             return (T_EXTERN);
         break;
+    case 'f':
+        if (!strcmp(s, "for"))
+            return T_FOR;
+    case 'i':
+        if (!strcmp(s, "int"))
+            return T_INT;
+        if (!strcmp(s, "if"))
+            return T_IF;
+        break;
     case 'w':
         if (!strcmp(s, "while"))
             return T_WHILE;
         break;
-    case 'f':
-        if (!strcmp(s, "for"))
-            return T_FOR;
+
     case 'v':
         if (!strcmp(s, "void"))
             return T_VOID;
-        break;
-    case 'c':
-        if (!strcmp(s, "char"))
-            return T_CHAR;
-        if (!strcmp(s, "continue"))
-            return (T_CONTINUE);
         break;
     case 'l':
         if (!strcmp(s, "long"))
@@ -141,6 +148,8 @@ static int keyword(char *s)
     case 's':
         if (!strcmp(s, "struct"))
             return (T_STRUCT);
+        if (!strcmp(s, "switch"))
+            return (T_SWITCH);
         break;
     case 'u':
         if (!strcmp(s, "union"))
@@ -358,6 +367,9 @@ int scan(struct token *t)
         break;
     case '.':
         t->token = T_DOT;
+        break;
+    case ':':
+        t->token = T_COLON;
         break;
     case '=':
         if ((c = next()) == '=')

@@ -5,6 +5,7 @@
 static int genIFAST(struct ASTnode *n, int looptoplabel, int loopendlabel);
 static int genWHILE(struct ASTnode *n);
 static int gen_funccall(struct ASTnode *n);
+static int genSWITCH(struct ASTnode *n);
 
 // Given an AST, the register (if any) that holds
 // the previous rvalue, and the AST op of the parent,
@@ -21,7 +22,9 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
     case A_IF:
         return genIFAST(n, looptoplabel, loopendlabel);
     case A_WHILE:
-        return genWHILE(n);
+        return (genWHILE(n));
+    case A_SWITCH:
+        return (genSWITCH(n));
     case A_FUNCCALL:
         return (gen_funccall(n));
     case A_GLUE:
@@ -287,6 +290,60 @@ static int genWHILE(struct ASTnode *n)
     cgjump(Lstart);
     cglabel(Lend);
     return NOREG;
+}
+
+// Generate the code for a SWITCH statement
+static int genSWITCH(struct ASTnode *n)
+{
+    int *caseval, *caselabel;
+    int Ljumptop, Lend;
+    int i, reg, defaultLabel = 0, casecount = 0;
+    struct ASTnode *c;
+
+    // Create arrays for the case values and assoociated lables.
+    // Ensure that we have at least one position in each array.
+    caseval = (int *)malloc((n->intvalue + 1) * sizeof(int));
+    caselabel = (int *)malloc((n->intvalue + 1) * sizeof(int));
+
+    // Generate labels for the top of the jump table, and the
+    // end of the switch statement. Set a default label for
+    // the end of the switch, in case we don't have a default.
+    Ljumptop = genlabel();
+    Lend = genlabel();
+    defaultLabel = Lend;
+
+    // Output the code to calculate the switch condition
+    reg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, 0);
+    cgjump(Ljumptop);
+    genfreeregs();
+
+    // Walk the right child linked list to
+    // generate the code for each case
+    for (i = 0, c = n->right; c != NULL; i++, c = c->right)
+    {
+        // Get a label for this case. Store it
+        // and the case value in the arrays.
+        // Record if it is the default case.
+        caselabel[i] = genlabel();
+        caseval[i] = c->intvalue;
+        cglabel(caselabel[i]);
+        if (c->op == A_DEFAULT)
+            defaultLabel = caselabel[i];
+        else
+            casecount++;
+
+        // Generate the case code. Pass in the end label for the breaks
+        genAST(c->left, NOLABEL, NOLABEL, Lend, 0);
+        genfreeregs();
+    }
+
+    // Ensure the last case jumps past the switch table
+    cgjump(Lend);
+
+    // Now output the switch table and the end label
+    cgswitch(reg, casecount, Ljumptop, caselabel, caseval, defaultLabel);
+    cglabel(Lend);
+    return (NOREG);
 }
 
 int genprimsize(int type)

@@ -363,6 +363,7 @@ struct ASTnode *function_declaration(int type)
     // Get the AST tree for the compound statement and mark
     // the we have parsed no loops yet
     Looplevel = 0;
+    Switchlevel = 0;
     tree = compound_statement();
 
     // If the function type isn't P_VOID, check that
