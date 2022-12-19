@@ -15,8 +15,9 @@
 
 struct token
 {
-    int token;
-    int intvalue;
+    int token;    // Token type, form the enum list above
+    char *tokstr; // String version of the token
+    int intvalue; // For T_INTLIT, the integer value
 };
 
 // Token types
