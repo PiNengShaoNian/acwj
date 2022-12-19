@@ -6,6 +6,9 @@ static struct symtable *composite_declaration(int type);
 static void enum_declaration(void);
 int typedef_declaration(struct symtable **ctype);
 int type_of_typedef(char *name, struct symtable **ctype);
+static struct symtable *function_declaration(char *funcname, int type,
+                                             struct symtable *ctype,
+                                             int class);
 
 // Parse the current token and return a
 // primitive type enum value, a pointer
@@ -82,6 +85,13 @@ int parse_type(struct symtable **ctype, int *class)
         fatals("Illegal type, token", Token.tokstr);
     }
 
+    return (type);
+}
+
+// Given a type parsed by parse_type(), scan in any following
+// '*' tokens and return the new type
+static int parse_stars(int type)
+{
     // Scan in one or more further '*' tokens
     // and determine the correct pointer type
     while (1)
@@ -94,6 +104,98 @@ int parse_type(struct symtable **ctype, int *class)
     }
 
     return (type);
+}
+
+static struct symtable *scalar_declaration(char *varname, int type, struct symtable *ctype, int class)
+{
+    // Add this as a known scalar
+    switch (class)
+    {
+    case C_EXTERN:
+    case C_GLOBAL:
+        return (addglob(varname, type, ctype, S_VARIABLE, class, 1));
+    case C_LOCAL:
+        return (addlocl(varname, type, ctype, S_VARIABLE, 1));
+    case C_PARAM:
+        return (addparm(varname, type, ctype, S_VARIABLE, 1));
+    case C_MEMBER:
+        return (addmemb(varname, type, ctype, S_VARIABLE, 1));
+    }
+
+    return (NULL); // Keep -Wall happy
+}
+
+static struct symtable *array_declaration(char *varname, int type, struct symtable *ctype, int class)
+{
+    struct symtable *sym;
+    // Skip past the '['
+    scan(&Token);
+
+    // Check we have an array size
+    if (Token.token == T_INTLIT)
+    {
+        // Add this a a known array
+        // We treat the array as a pointer to its elements' type
+        switch (class)
+        {
+        case C_EXTERN:
+        case C_GLOBAL:
+            sym =
+                addglob(varname, pointer_to(type), ctype, S_ARRAY, class,
+                        Token.intvalue);
+            break;
+        case C_LOCAL:
+        case C_PARAM:
+        case C_MEMBER:
+            fatal("For now, declaration of non-global arrays is not implemented");
+        }
+    }
+
+    // Ensure we have a following ']'
+    scan(&Token);
+    match(T_RBRACKET, "]");
+    return (sym);
+}
+
+static int param_declaration_list(struct symtable *oldfuncsym, struct symtable *newfuncsym)
+{
+    int type, paramcnt = 0;
+    struct symtable *ctype;
+    struct symtable *protoptr = NULL;
+
+    // Get the pointer to the first prototype parameter
+    if (oldfuncsym != NULL)
+        protoptr = oldfuncsym->member;
+
+    // Loop getting any parameters
+    while (Token.token != T_RPAREN)
+    {
+        // Get the type of the next parameter
+        type = declaration_list(&ctype, C_PARAM, T_COMMA, T_RPAREN);
+        if (type == -1)
+            fatal("Bad type in parameter list");
+
+        // Ensure the type of this parameter matches the prototype
+        if (protoptr != NULL)
+        {
+            if (type != protoptr->type)
+                fatald("Type doesn't match prototype for parameter", paramcnt + 1);
+            protoptr = protoptr->next;
+        }
+        paramcnt++;
+
+        // Stop when we hit the right parenthesis
+        if (Token.token == T_RPAREN)
+            break;
+        // We need a comma as separator
+        comma();
+    }
+
+    if (oldfuncsym != NULL && paramcnt != oldfuncsym->nelems)
+        fatals("Parameter count mismatch for function", oldfuncsym->name);
+
+    // Return the count of parameters
+    return (paramcnt);
 }
 
 // variable_declaration: type identifier ';'
@@ -179,128 +281,143 @@ struct symtable *var_declaration(int type, struct symtable *ctype, int class)
     return (sym);
 }
 
-// Parse one or more global declarations, either
-// variables or functions
-void global_declarations(void)
+static void array_initialisation(struct symtable *sym, int type,
+                                 struct symtable *ctype, int class)
 {
-    struct ASTnode *tree;
-    struct symtable *ctype;
-    int type, class = C_GLOBAL;
+    fatal("No array initialisation yet!");
+}
 
-    while (1)
+// Parse the declaration of a variable or function.
+// The type and any following '*'s have been scanned, and we
+// have the identifier in the Token variable.
+// The class argument is the variable's class.
+// Return a pointer to the symbol's entry in the symbol table.
+static struct symtable *symbol_declaration(int type, struct symtable *ctype, int class)
+{
+    struct symtable *sym = NULL;
+    char *varname = strdup(Text);
+    int stype = S_VARIABLE;
+
+    // struct ASTnode *expr = NULL;
+
+    // Assume it will be a scalar variable.
+    // Ensure that we have an identifier.
+    // We copied it above so we can scan more tokens in, e.g.
+    // an assignment expression for a local variable.
+    ident();
+
+    // Deal with function declarations
+    if (Token.token == T_LPAREN)
     {
-        if (Token.token == T_EOF)
-            break;
+        return (function_declaration(varname, type, ctype, class));
+    }
 
-        // Get the type
-        type = parse_type(&ctype, &class);
+    // See if this array or scalar variable has already been declared
+    switch (class)
+    {
+    case C_EXTERN:
+    case C_GLOBAL:
+        if (findglob(varname) != NULL)
+            fatals("Duplicate global variable declaration", varname);
+    case C_LOCAL:
+    case C_PARAM:
+        if (findlocl(varname) != NULL)
+            fatals("Duplicate local variable declaration", varname);
+    case C_MEMBER:
+        if (findmember(varname) != NULL)
+            fatals("Duplicate struct/union member declaration", varname);
+    }
 
-        // We might have just parsed a struct declaration
-        // with no associated variable. the next token
-        // might be a ';'. Loop back if it is. XXX. I'm
-        // not happy with this as it allow "struct fred;"
-        // as an accepted statement
-        if (type == -1)
-        {
-            semi();
-            continue;
-        }
+    // Add the array or scalar variable to the symbol table
+    if (Token.token == T_LBRACKET)
+    {
+        sym = array_declaration(varname, type, ctype, class);
+        stype = S_ARRAY;
+    }
+    else
+        sym = scalar_declaration(varname, type, ctype, class);
 
-        // We have to read post the identifier
-        // to see either a '(' for a function declaration
-        // or a ',' or ';' for a variable declaration.
-        // Text is filled in by the ident() call.
-        ident();
-        if (Token.token == T_LPAREN)
-        {
-            // Parse the function declaration and
-            // generate the assembly code for it
-            tree = function_declaration(type);
+    // The array or scalar variable is being initialised
+    if (Token.token == T_ASSIGN)
+    {
+        // Not possible for a parameter or member
+        if (class == C_PARAM)
+            fatals("Initialisation of a parameter not permitted", varname);
+        if (class == C_MEMBER)
+            fatals("Initialisation of a member not permitted", varname);
 
-            // Only a function prototype, no code
-            if (tree == NULL)
-                continue;
+        scan(&Token);
 
-            if (O_dumpAST)
-            {
-                dumpAST(tree, NOLABEL, 0);
-                fprintf(stdout, "\n\n");
-            }
-            genAST(tree, NOLABEL, NOLABEL, NOLABEL, 0);
-
-            // Now free the symbols associated
-            // with this function
-            freeloclsyms();
-        }
+        // Array initialisation
+        if (stype == S_ARRAY)
+            array_initialisation(sym, type, ctype, class);
         else
         {
-            // Parse the global variable declaration
-            // and skip past the trailing semicolon
-            var_declaration(type, ctype, class);
-            semi();
+            fatal("Scalar variable initialisation not done yet");
+            // Variable initialisation
+            // if(class == C_LOCAL)
+            // Local variable, parse the expression
+            // expr = binexpr(0);
+            // else write more code!
         }
+    }
+
+    // Generate the storage for the array or scalar variable. SOON.
+    // genstorage(sym, expr);
+    return (sym);
+}
+
+// Parse a list of symbols where there is an initial type.
+// Return the type of the symbols. et1 and et2 are end tokens.
+int declaration_list(struct symtable **ctype, int class, int et1, int et2)
+{
+    int inittype, type;
+    struct symtable *sym;
+
+    // Get the initial type. If -1, it was
+    // a composite type definition, return this
+    if ((inittype = parse_type(ctype, &class)) == -1)
+        return (inittype);
+
+    // Now parse the list of symbols
+    while (1)
+    {
+        // See if this symbol is a pointer
+        type = parse_stars(inittype);
+
+        // Parse this symbol
+        sym = symbol_declaration(type, *ctype, class);
+
+        // We parsed a function, there is no list so leave
+        if (sym->stype == S_FUNCTION)
+        {
+            if (class != C_GLOBAL)
+                fatal("Function definition not at global level");
+
+            return (type);
+        }
+
+        // We are at the end of the list, leave
+        if (Token.token == et1 || Token.token == et2)
+            return (type);
+
+        // Otherwise, we need a comma as separator
+        comma();
     }
 }
 
-// var_declaration_list: <null>
-//                | variable_declaration
-//                | variable_declaration separate_token variable_declaration_list;
-//
-// When called to parse function parameters, separate_token is ','.
-// When called to parse members of a struct/union, separated_token is ';'.
-//
-// Parse a list of variables.
-// Add them as symbols to one of the symbol table lists, and return the
-// number of variables. If funcsym is not NULL, there is an existing function
-// prototype, so compare each variable's type against this prototype.
-static int var_declaration_list(struct symtable *funcsym, int class, int separate_token, int end_token)
+// Parse one or more global declarations, either
+// variables or functions or structs
+void global_declarations(void)
 {
-    int type;
-    int paramcnt = 0;
-    struct symtable *protoptr = NULL;
     struct symtable *ctype;
-
-    // If there is a prototype, get the pointer
-    // to the first prototype parameter
-    if (funcsym != NULL)
-        protoptr = funcsym->member;
-
-    // Loop until  the final end token
-    while (Token.token != end_token)
+    while (Token.token != T_EOF)
     {
-        // Get the type and identifier
-        type = parse_type(&ctype, &class);
-        ident();
-
-        // Check that this type matches the prototype if there is one
-        if (protoptr != NULL)
-        {
-            if (type != protoptr->type)
-                fatald("Type doesn't match prototype for parameter", paramcnt + 1);
-            protoptr = protoptr->next;
-        }
-        else
-        {
-            // Add a new parameter to the right symbol table list, based on the class
-            var_declaration(type, ctype, class);
-        }
-        paramcnt++;
-
-        // Must have a separate_token or ')' at this point
-        if ((Token.token != separate_token) && (Token.token != end_token))
-            fatals("Unexpected token in parameter list", Token.tokstr);
-
-        if (Token.token == separate_token)
+        declaration_list(&ctype, C_GLOBAL, T_SEMI, T_EOF);
+        // Skip any semicolons
+        if (Token.token == T_SEMI)
             scan(&Token);
     }
-
-    // Check that the number of parameters in this list matches
-    // any existing prototype
-    if ((funcsym != NULL) && (paramcnt != funcsym->nelems))
-        fatals("Parameter count mismatch for function", funcsym->name);
-
-    // Return the count of parameters
-    return (paramcnt);
 }
 
 //
@@ -309,7 +426,7 @@ static int var_declaration_list(struct symtable *funcsym, int class, int separat
 //
 // Parse the declaration of function.
 // The identifier has been scanned & we have the type
-struct ASTnode *function_declaration(int type)
+static struct symtable *function_declaration(char *funcname, int type, struct symtable *ctype, int class)
 {
     struct ASTnode *tree, *finalstmt;
     struct symtable *oldfuncsym, *newfuncsym = NULL;
@@ -327,13 +444,14 @@ struct ASTnode *function_declaration(int type)
     if (oldfuncsym == NULL)
     {
         endlabel = genlabel();
+        // Assumtion: functions only return scalar types, so NULL below
         newfuncsym = addglob(Text, type, NULL, S_FUNCTION, C_GLOBAL, endlabel);
     }
 
     // Scan in the '(', any parameters and the ')'.
     // Pass in any existing function prototype symbol slot number
     lparen();
-    paramcnt = var_declaration_list(oldfuncsym, C_PARAM, T_COMMA, T_RPAREN);
+    paramcnt = param_declaration_list(oldfuncsym, newfuncsym);
     rparen();
 
     // If this is a new function declaration, update the
@@ -351,10 +469,7 @@ struct ASTnode *function_declaration(int type)
 
     // Declaration ends in a semicolon, only a prototype.
     if (Token.token == T_SEMI)
-    {
-        scan(&Token);
-        return (NULL);
-    }
+        return (oldfuncsym);
 
     // This is not just a prototype.
     // Set the Functionid global to the function's symbol pointer
@@ -384,9 +499,22 @@ struct ASTnode *function_declaration(int type)
             fatal("No return for function with non-void type");
     }
 
-    // Return an A_FUNCTION node which has the function's id
+    // Build the A_FUNCTION node which has the function's symbol pointer
     // and the compound statement sub-tree
-    return (mkastunary(A_FUNCTION, type, tree, oldfuncsym, endlabel));
+    tree = mkastunary(A_FUNCTION, type, tree, oldfuncsym, endlabel);
+
+    // Generate the assembly code for it
+    if (O_dumpAST)
+    {
+        dumpAST(tree, NOLABEL, 0);
+        fprintf(stdout, "\n\n");
+    }
+
+    genAST(tree, NOLABEL, NOLABEL, NOLABEL, 0);
+
+    // Now free the symbols associated with this function
+    freeloclsyms();
+    return (oldfuncsym);
 }
 
 // Parse struct declarations. Either find an existing
@@ -397,6 +525,7 @@ static struct symtable *composite_declaration(int type)
     struct symtable *ctype = NULL;
     struct symtable *m;
     int offset;
+    int t;
 
     // Skip the struct keyword
     scan(&Token);
@@ -436,8 +565,23 @@ static struct symtable *composite_declaration(int type)
 
     // Scan in the list of members and attach
     // to the struct type's node
-    var_declaration_list(NULL, C_MEMBER, T_SEMI, T_RBRACE);
+    while (1)
+    {
+        // Get the next member. m is used as a dummy
+        t = declaration_list(&m, C_MEMBER, T_SEMI, T_RBRACE);
+        if (t == -1)
+            fatal("Bad type in member list");
+        if (Token.token == T_SEMI)
+            scan(&Token);
+        if (Token.token == T_RBRACE)
+            break;
+    }
+
+    // Attach to the struct type's node
     rbrace();
+    if (Membhead == NULL)
+        fatals("No members in struct", ctype->name);
+
     ctype->member = Membhead;
     Membhead = Membtail = NULL;
 
@@ -447,7 +591,8 @@ static struct symtable *composite_declaration(int type)
     m->posn = 0;
     offset = typesize(m->type, m->ctype);
 
-    // Set the position of each successive member in the struct
+    // Set the position of each successive member in the composite type
+    // Unions are easy. For structs, align the member and find the next free byte
     for (m = m->next; m != NULL; m = m->next)
     {
         // Set the offset for this member
@@ -561,6 +706,9 @@ int typedef_declaration(struct symtable **ctype)
     // See if the typedef identifier already exists
     if (findtypedef(Text) != NULL)
         fatals("redefinition of typedef", Text);
+
+    // Get any following '*' tokens
+    type = parse_stars(type);
 
     // It does't exist so add it to the typedef list
     addtypedef(Text, type, *ctype, 0, 0);

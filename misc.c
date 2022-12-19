@@ -14,8 +14,7 @@ void match(int t, char *what)
     }
     else
     {
-        printf("%s expected on line %d\n", what, Line);
-        exit(1);
+        fatals("Expected", what);
     }
 }
 

@@ -120,8 +120,7 @@ void clear_symtable(void);
 void freeloclsyms(void);
 
 // decl.c
-struct symtable *var_declaration(int type, struct symtable *ctype, int class);
-struct ASTnode *function_declaration(int type);
+int declaration_list(struct symtable **ctype, int class, int et1, int et2);
 void global_declarations(void);
 
 // types.c
