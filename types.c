@@ -24,7 +24,7 @@ int value_at(int type)
 // of any size, false otherwise
 int inttype(int type)
 {
-    return ((type & 0xf) == 0);
+    return (((type & 0xf) == 0) && (type >= P_CHAR && type <= P_LONG));
 }
 
 // Return true if a type is of pointer type

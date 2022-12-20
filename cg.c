@@ -323,7 +323,9 @@ int cgstorglob(int r, struct symtable *sym)
 // Generate a global symbol
 void cgglobsym(struct symtable *node)
 {
-    int size;
+    int size, type;
+    int initvalue;
+    int i;
 
     if (node == NULL)
         return;
@@ -331,27 +333,48 @@ void cgglobsym(struct symtable *node)
     if (node->stype == S_FUNCTION)
         return;
 
-    // Get the size of the type
-    size = typesize(node->type, node->ctype);
+    // Get the size of the variable (or its elements if an array)
+    // and the type of the variable
+    if (node->stype == S_ARRAY)
+    {
+        size = typesize(value_at(node->type), node->ctype);
+        type = value_at(node->type);
+    }
+    else
+    {
+        size = node->size;
+        type = node->type;
+    }
 
     // Generate the global identity and the label
     cgdataseg();
     fprintf(Outfile, "\t.globl\t%s\n", node->name);
-    fprintf(Outfile, "%s:", node->name);
+    fprintf(Outfile, "%s:\n", node->name);
 
-    // Generate the space
-    for (int i = 0; i < node->size; i++)
+    // Output space for one or more elements
+    for (i = 0; i < node->nelems; i++)
     {
+
+        // Get any initial value
+        initvalue = 0;
+        if (node->initlist != NULL)
+            initvalue = node->initlist[i];
+
+        // Generate the space for this type
         switch (size)
         {
         case 1:
-            fprintf(Outfile, "\t.byte\t0\n");
+            fprintf(Outfile, "\t.byte\t%d\n", initvalue);
             break;
         case 4:
-            fprintf(Outfile, "\t.long\t0\n");
+            fprintf(Outfile, "\t.long\t%d\n", initvalue);
             break;
         case 8:
-            fprintf(Outfile, "\t.quad\t0\n");
+            // Generate the pointer to a string literal
+            if (node->initlist != NULL && type == pointer_to(P_CHAR))
+                fprintf(Outfile, "\t.quad\tL%d\n", initvalue);
+            else
+                fprintf(Outfile, "\t.quad\t%d\n", initvalue);
             break;
         default:
             for (int i = 0; i < size; i++)

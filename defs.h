@@ -201,24 +201,21 @@ struct symtable
 {
     char *name;             // Name of a symbol
     int type;               // Primitive type for the symbol
-    struct symtable *ctype; // If needed, pointer to the composite type
+    struct symtable *ctype; // If struct/union, ptr to that type
     int stype;              // Structural type for the symbol
     int class;              // Storage class for the symbol
+    int size;               // Total size in bytes of this symbol
+    int nelems;             // Functions: # params. Arrays: # elements
     union
     {
-        int size;     // Number of elements in the symbol
         int endlabel; // For functions, the end label
-        int intvalue; // For enum symbols, the associated value
+        int posn;     // For locals, the negative offset
+                      // from the stack base pointer
     };
-    union
-    {
-        int nelems; // For functions, # of params
-        int posn;   // For locals, the negative offset
-                    // from the stack base pointer
-    };
-    struct symtable *next;   // Next symbol in one line
-    struct symtable *member; // First parameter of a function
-};
+    int *initlist;           // List of initial values
+    struct symtable *next;   // Next symbol in one list
+    struct symtable *member; // First member of a function, struct,
+};                           // union or enum
 
 #define NOREG -1  // Use NOREG when the AST generation
                   // functions have no register to return

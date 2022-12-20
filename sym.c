@@ -30,9 +30,8 @@ void appendsym(struct symtable **head, struct symtable **tail, struct symtable *
 // + posn: Position information for local symbols
 // Return a pointer to the new node
 struct symtable *newsym(char *name, int type, struct symtable *ctype,
-                        int stype, int class, int size, int posn)
+                        int stype, int class, int nelems, int posn)
 {
-
     // Get a new node
     struct symtable *node = (struct symtable *)malloc(sizeof(struct symtable));
     if (node == NULL)
@@ -44,26 +43,33 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype,
     node->ctype = ctype;
     node->stype = stype;
     node->class = class;
-    node->size = size;
+    node->nelems = nelems;
+
+    // For pointers and integer types, set the size
+    // of the symbol. structs and union declarations
+    // manually set this up themselves.
+    if (ptrtype(type) || inttype(type))
+        node->size = nelems * typesize(type, ctype);
+
     node->posn = posn;
     node->next = NULL;
     node->member = NULL;
+    node->initlist = NULL;
 
-    // Generate any global space
-    if (class == C_GLOBAL)
-        genglobsym(node);
     return (node);
 }
 
 // Add a symbol to the global symbol list
 struct symtable *addglob(char *name, int type, struct symtable *ctype,
-                         int stype, int class, int size)
+                         int stype, int class, int nelems, int posn)
 {
-    struct symtable *sym = newsym(name, type, ctype, stype, class, size, 0);
+    struct symtable *sym = newsym(name, type, ctype, stype, class, nelems, posn);
+    // For structs and unions, copy the size from the type node
+    if (type == P_STRUCT || type == P_UNION)
+        sym->size = ctype->size;
     appendsym(&Globhead, &Globtail, sym);
     return (sym);
 }
-
 // Clear all the entries in the local symbol table
 void freeloclsyms(void)
 {
