@@ -122,7 +122,8 @@ void clear_symtable(void);
 void freeloclsyms(void);
 
 // decl.c
-int declaration_list(struct symtable **ctype, int class, int et1, int et2);
+int declaration_list(struct symtable **ctype, int class, int et1, int et2,
+                     struct ASTnode **gluetree);
 void global_declarations(void);
 
 // types.c

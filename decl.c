@@ -136,9 +136,13 @@ int parse_literal(int type)
     return (Token.intvalue);
 }
 
-static struct symtable *scalar_declaration(char *varname, int type, struct symtable *ctype, int class)
+static struct symtable *scalar_declaration(char *varname, int type,
+                                           struct symtable *ctype,
+                                           int class, struct ASTnode **tree)
 {
     struct symtable *sym = NULL;
+    struct ASTnode *varnode, *exprnode;
+    *tree = NULL;
 
     // Add this as a known scalar
     switch (class)
@@ -174,6 +178,21 @@ static struct symtable *scalar_declaration(char *varname, int type, struct symta
             sym->initlist = (int *)malloc(sizeof(int));
             sym->initlist[0] = parse_literal(type);
             scan(&Token);
+        }
+        if (class == C_LOCAL)
+        {
+            // Make an A_IDENT AST node with the variable
+            varnode = mkastleaf(A_IDENT, sym->type, sym, 0);
+
+            // Get the expression for the assignment, make into a rvalue
+            exprnode = binexpr(0);
+            exprnode->rvalue = 1;
+            if (exprnode == NULL)
+                fatal("Incompatible expression in assignment");
+
+            // Make an assignment AST tree
+            *tree = mkastnode(A_ASSIGN, exprnode->type, exprnode,
+                              NULL, varnode, NULL, 0);
         }
     }
 
@@ -298,6 +317,7 @@ static int param_declaration_list(struct symtable *oldfuncsym, struct symtable *
     int type, paramcnt = 0;
     struct symtable *ctype;
     struct symtable *protoptr = NULL;
+    struct ASTnode *unused;
 
     // Get the pointer to the first prototype parameter
     if (oldfuncsym != NULL)
@@ -307,7 +327,7 @@ static int param_declaration_list(struct symtable *oldfuncsym, struct symtable *
     while (Token.token != T_RPAREN)
     {
         // Get the type of the next parameter
-        type = declaration_list(&ctype, C_PARAM, T_COMMA, T_RPAREN);
+        type = declaration_list(&ctype, C_PARAM, T_COMMA, T_RPAREN, &unused);
         if (type == -1)
             fatal("Bad type in parameter list");
 
@@ -334,22 +354,16 @@ static int param_declaration_list(struct symtable *oldfuncsym, struct symtable *
     return (paramcnt);
 }
 
-static void array_initialisation(struct symtable *sym, int type,
-                                 struct symtable *ctype, int class)
-{
-    fatal("No array initialisation yet!");
-}
-
 // Parse the declaration of a variable or function.
 // The type and any following '*'s have been scanned, and we
 // have the identifier in the Token variable.
 // The class argument is the variable's class.
 // Return a pointer to the symbol's entry in the symbol table.
-static struct symtable *symbol_declaration(int type, struct symtable *ctype, int class)
+static struct symtable *symbol_declaration(int type, struct symtable *ctype,
+                                           int class, struct ASTnode **tree)
 {
     struct symtable *sym = NULL;
     char *varname = strdup(Text);
-    int stype = S_VARIABLE;
 
     // struct ASTnode *expr = NULL;
 
@@ -383,49 +397,22 @@ static struct symtable *symbol_declaration(int type, struct symtable *ctype, int
 
     // Add the array or scalar variable to the symbol table
     if (Token.token == T_LBRACKET)
-    {
         sym = array_declaration(varname, type, ctype, class);
-        stype = S_ARRAY;
-    }
     else
-        sym = scalar_declaration(varname, type, ctype, class);
+        sym = scalar_declaration(varname, type, ctype, class, tree);
 
-    // The array or scalar variable is being initialised
-    if (Token.token == T_ASSIGN)
-    {
-        // Not possible for a parameter or member
-        if (class == C_PARAM)
-            fatals("Initialisation of a parameter not permitted", varname);
-        if (class == C_MEMBER)
-            fatals("Initialisation of a member not permitted", varname);
-
-        scan(&Token);
-
-        // Array initialisation
-        if (stype == S_ARRAY)
-            array_initialisation(sym, type, ctype, class);
-        else
-        {
-            fatal("Scalar variable initialisation not done yet");
-            // Variable initialisation
-            // if(class == C_LOCAL)
-            // Local variable, parse the expression
-            // expr = binexpr(0);
-            // else write more code!
-        }
-    }
-
-    // Generate the storage for the array or scalar variable. SOON.
-    // genstorage(sym, expr);
     return (sym);
 }
 
 // Parse a list of symbols where there is an initial type.
 // Return the type of the symbols. et1 and et2 are end tokens.
-int declaration_list(struct symtable **ctype, int class, int et1, int et2)
+int declaration_list(struct symtable **ctype, int class, int et1, int et2,
+                     struct ASTnode **gluetree)
 {
     int inittype, type;
     struct symtable *sym;
+    struct ASTnode *tree;
+    *gluetree = NULL;
 
     // Get the initial type. If -1, it was
     // a composite type definition, return this
@@ -439,7 +426,7 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2)
         type = parse_stars(inittype);
 
         // Parse this symbol
-        sym = symbol_declaration(type, *ctype, class);
+        sym = symbol_declaration(type, *ctype, class, &tree);
 
         // We parsed a function, there is no list so leave
         if (sym->stype == S_FUNCTION)
@@ -449,6 +436,13 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2)
 
             return (type);
         }
+
+        // Glue any AST tree from a local declaration
+        // to build a sequence of assignments to perform
+        if (*gluetree == NULL)
+            *gluetree = tree;
+        else
+            *gluetree = mkastnode(A_GLUE, P_NONE, *gluetree, NULL, tree, NULL, 0);
 
         // We are at the end of the list, leave
         if (Token.token == et1 || Token.token == et2)
@@ -464,9 +458,11 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2)
 void global_declarations(void)
 {
     struct symtable *ctype;
+    struct ASTnode *unused;
+
     while (Token.token != T_EOF)
     {
-        declaration_list(&ctype, C_GLOBAL, T_SEMI, T_EOF);
+        declaration_list(&ctype, C_GLOBAL, T_SEMI, T_EOF, &unused);
         // Skip any semicolons
         if (Token.token == T_SEMI)
             scan(&Token);
@@ -578,6 +574,7 @@ static struct symtable *composite_declaration(int type)
 {
     struct symtable *ctype = NULL;
     struct symtable *m;
+    struct ASTnode *unused;
     int offset;
     int t;
 
@@ -622,7 +619,7 @@ static struct symtable *composite_declaration(int type)
     while (1)
     {
         // Get the next member. m is used as a dummy
-        t = declaration_list(&m, C_MEMBER, T_SEMI, T_RBRACE);
+        t = declaration_list(&m, C_MEMBER, T_SEMI, T_RBRACE, &unused);
         if (t == -1)
             fatal("Bad type in member list");
         if (Token.token == T_SEMI)
