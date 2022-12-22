@@ -138,7 +138,8 @@ enum
     A_CONTINUE,
     A_SWITCH,
     A_CASE,
-    A_DEFAULT
+    A_DEFAULT,
+    A_CAST
 };
 
 // Primitive types. Then bottom 4 bits is an integer

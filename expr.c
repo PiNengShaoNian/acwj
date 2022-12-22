@@ -248,6 +248,7 @@ static struct ASTnode *primary(void)
 {
     struct ASTnode *n;
     int id;
+    int type = 0;
 
     switch (Token.token)
     {
@@ -269,10 +270,42 @@ static struct ASTnode *primary(void)
         return (postfix());
     case T_LPAREN:
         // Beginning of a parenthesized expression, skip the '('.
-        // Scan in the expression and the right parenthesis
         scan(&Token);
-        n = binexpr(0);
-        rparen();
+
+        // If the token after is a type identifier, this is a cast expression
+        switch (Token.token)
+        {
+        case T_IDENT:
+            // We have to see if the identifier matches a typedef.
+            // If not, treat it as an expression.
+            if (findtypedef(Text) == NULL)
+            {
+                n = binexpr(0);
+                break;
+            }
+        case T_VOID:
+        case T_CHAR:
+        case T_INT:
+        case T_LONG:
+        case T_STRUCT:
+        case T_UNION:
+        case T_ENUM:
+            // Get the type inside the parentheses
+            type = parse_cast();
+            // Skip the closing ')' and then parse the following expression
+            rparen();
+        default:
+            n = binexpr(0); // Scan in the expression
+        }
+
+        // We now have at least an expression in n, and possibly a non-zero type in type
+        // if there was a cast. Skip the closing ')' if there was no cast.
+        if (type == 0)
+            rparen();
+        else
+            // Otherwise, make a unary AST node for the cast
+            n = mkastunary(A_CAST, type, n, NULL, 0);
+
         return (n);
     default:
         fatals("Expecting a primary expression, got token", Token.tokstr);

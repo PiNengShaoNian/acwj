@@ -106,6 +106,22 @@ static int parse_stars(int type)
     return (type);
 }
 
+// Parse a type which appears inside a cast
+int parse_cast(void)
+{
+    int type, class;
+    struct symtable *ctype;
+
+    // Get the type inside the parentheses
+    type = parse_stars(parse_type(&ctype, &class));
+
+    // Do some error checking. I'm sure more can be done
+    if (type == P_STRUCT || type == P_UNION || type == P_VOID)
+        fatal("Cannot cast to a struct, union or void type");
+
+    return (type);
+}
+
 // Given a type, check that the latest token is a literal
 // of that type. If an integer literal, return its value.
 // If a string literal, return the label number of the string.
@@ -113,8 +129,11 @@ static int parse_stars(int type)
 int parse_literal(int type)
 {
     // We have a string literal. Store in memory and return its label
-    if ((type == pointer_to(P_CHAR)) && (Token.token == T_STRLIT))
-        return (genglobstr(Text));
+    if (Token.token == T_STRLIT)
+    {
+        if ((type == pointer_to(P_CHAR)) || type == P_NONE)
+            return (genglobstr(Text));
+    }
 
     if (Token.token == T_INTLIT)
     {
@@ -123,6 +142,7 @@ int parse_literal(int type)
         case P_CHAR:
             if (Token.intvalue < 0 || Token.intvalue > 255)
                 fatal("Integer literal value too big for char type");
+        case P_NONE:
         case P_INT:
         case P_LONG:
             break;
@@ -142,6 +162,7 @@ static struct symtable *scalar_declaration(char *varname, int type,
 {
     struct symtable *sym = NULL;
     struct ASTnode *varnode, *exprnode;
+    int casttype;
     *tree = NULL;
 
     // Add this as a known scalar
@@ -173,6 +194,23 @@ static struct symtable *scalar_declaration(char *varname, int type,
         // Globals must be assigned a literal value
         if (class == C_GLOBAL)
         {
+            // If there is a cast
+            if (Token.token == T_LPAREN)
+            {
+                // Get the type in the cast
+                scan(&Token);
+                casttype = parse_cast();
+                rparen();
+
+                // Check that the two types are compatible. Change
+                // the new type so that the literal parse below works.
+                // A 'void *' casttype can be assigned to any pointer type.
+                if (casttype == type || (casttype == pointer_to(P_VOID) && ptrtype(type)))
+                    type = P_NONE;
+                else
+                    fatal("Type mismatch");
+            }
+
             // Create one initial value for the variable and
             // parse this value
             sym->initlist = (int *)malloc(sizeof(int));
@@ -215,6 +253,7 @@ static struct symtable *array_declaration(char *varname, int type,
     int maxelems;         // The maximum number of elements in the init list
     int *initlist;        // The list of initial elements
     int i = 0, j;
+    int casttype, newtype;
 
     // Skip past the '['
     scan(&Token);
@@ -267,12 +306,30 @@ static struct symtable *array_declaration(char *varname, int type,
         // Loop getting a new literal value from the list
         while (1)
         {
+            // Get the original type
+            newtype = type;
 
             if (nelems != -1 && i == maxelems)
-            {
                 fatal("Too many values in initialisation list");
+
+            if (Token.token == T_LPAREN)
+            {
+                // Get the type in the cast
+                scan(&Token);
+                casttype = parse_cast();
+                rparen();
+
+                // Check that the two types are compatible. Change
+                // the new type so that the literal parse below works.
+                // A 'void *' casstype can be assigned to any pointer type.
+                if (casttype == type || (casttype == pointer_to(P_VOID) && ptrtype(type)))
+                    newtype = P_NONE;
+                else
+                    fatal("Type mismatch");
+                newtype = P_NONE;
             }
-            initlist[i++] = parse_literal(type);
+
+            initlist[i++] = parse_literal(newtype);
             scan(&Token);
 
             // Increase the list size if the original size was

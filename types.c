@@ -56,6 +56,12 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op)
 
     ltype = tree->type;
 
+    // XXX No idea on these yet
+    if (ltype == P_STRUCT || ltype == P_UNION)
+        fatal("Don't know how to do this yet");
+    if (rtype == P_STRUCT || rtype == P_UNION)
+        fatal("Don't know how to do this yet");
+
     // Compare scalar int types
     if (inttype(ltype) && inttype(rtype))
     {
@@ -64,8 +70,8 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op)
             return (tree);
 
         // Get the sizes for each type
-        lsize = genprimsize(ltype);
-        rsize = genprimsize(rtype);
+        lsize = typesize(ltype, NULL);
+        rsize = typesize(rtype, NULL);
 
         // Tree's size is too long
         if (lsize > rsize)
@@ -77,10 +83,15 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op)
     }
 
     // For pointers on the left
-    if (ptrtype(ltype))
+    if (ptrtype(ltype) && ptrtype(rtype))
     {
-        // Ok is same type on right and not doing a binary op
-        if (op == 0 && ltype == rtype)
+        // We can compare them
+        if (op >= A_EQ && op <= A_GE)
+            return (tree);
+
+        // A comparison of the same type for a non-binary operation is OK,
+        // or when the left tree is of `void *` type.
+        if (op == 0 && (ltype == rtype || ltype == pointer_to(P_VOID)))
             return (tree);
     }
 
@@ -93,9 +104,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op)
         {
             rsize = genprimsize(value_at(rtype));
             if (rsize > 1)
-            {
                 return (mkastunary(A_SCALE, rtype, tree, NULL, rsize));
-            }
             else
                 return (tree); // Size 1, no need to scale
         }

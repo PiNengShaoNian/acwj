@@ -122,6 +122,8 @@ void clear_symtable(void);
 void freeloclsyms(void);
 
 // decl.c
+int parse_type(struct symtable **ctype, int *class);
+int parse_cast(void);
 int declaration_list(struct symtable **ctype, int class, int et1, int et2,
                      struct ASTnode **gluetree);
 void global_declarations(void);
@@ -129,7 +131,6 @@ void global_declarations(void);
 // types.c
 int inttype(int type);
 int ptrtype(int type);
-int parse_type(struct symtable **ctype, int *class);
 int pointer_to(int type);
 int value_at(int type);
 int typesize(int type, struct symtable *ctype);

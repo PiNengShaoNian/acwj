@@ -185,6 +185,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
     case A_CONTINUE:
         cgjump(looptoplabel);
         return (NOREG);
+    case A_CAST:
+        return (leftreg);
     default:
         fatald("Unknown AST operator", n->op);
         return (0);
