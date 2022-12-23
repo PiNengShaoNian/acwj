@@ -5,10 +5,10 @@ BINDIR=/tmp
 
 HSRCS= data.h decl.h defs.h
 SRCS= cg.c decl.c expr.c gen.c main.c misc.c \
-	scan.c stmt.c sym.c tree.c types.c
+	opt.c scan.c stmt.c sym.c tree.c types.c
 
 ARMSRCS= cg.c decl.c expr.c gen.c main.c misc.c \
-	scan.c stmt.c sym.c tree.c types.c
+	opt.c scan.c stmt.c sym.c tree.c types.c
 
 cwj: $(SRCS) $(HSRCS)
 	cc -o cwj -g -Wall -DINCDIR=\"$(INCDIR)\" $(SRCS)

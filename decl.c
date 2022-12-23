@@ -610,6 +610,9 @@ static struct symtable *function_declaration(char *funcname, int type, struct sy
     // and the compound statement sub-tree
     tree = mkastunary(A_FUNCTION, type, tree, oldfuncsym, endlabel);
 
+    // Do optimisations on the AST tree
+    tree = optimise(tree);
+
     // Generate the assembly code for it
     if (O_dumpAST)
     {

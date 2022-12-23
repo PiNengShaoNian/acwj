@@ -136,6 +136,9 @@ void dumpAST(struct ASTnode *n, int label, int level)
     case A_INTLIT:
         fprintf(stdout, "A_INTLIT %d\n", n->a_intvalue);
         return;
+    case A_STRLIT:
+        fprintf(stdout, "A_STRLIT rval label L%d\n", n->a_intvalue);
+        return;
     case A_IDENT:
         if (n->rvalue)
             fprintf(stdout, "A_IDENT rval %s\n", n->sym->name);
@@ -144,18 +147,6 @@ void dumpAST(struct ASTnode *n, int label, int level)
         return;
     case A_ASSIGN:
         fprintf(stdout, "A_ASSIGN\n");
-        return;
-    case A_ASPLUS:
-        fprintf(stdout, "A_ASPLUS\n");
-        return;
-    case A_ASMINUS:
-        fprintf(stdout, "A_ASMINUS\n");
-        return;
-    case A_ASSTAR:
-        fprintf(stdout, "A_ASSTAR\n");
-        return;
-    case A_ASSLASH:
-        fprintf(stdout, "A_ASSLASH\n");
         return;
     case A_WIDEN:
         fprintf(stdout, "A_WIDEN\n");
@@ -177,6 +168,51 @@ void dumpAST(struct ASTnode *n, int label, int level)
         return;
     case A_SCALE:
         fprintf(stdout, "A_SCALE %d\n", n->a_size);
+        return;
+    case A_PREINC:
+        fprintf(stdout, "A_PREINC %s\n", n->sym->name);
+        return;
+    case A_PREDEC:
+        fprintf(stdout, "A_PREDEC %s\n", n->sym->name);
+        return;
+    case A_POSTINC:
+        fprintf(stdout, "A_POSTINC\n");
+        return;
+    case A_POSTDEC:
+        fprintf(stdout, "A_POSTDEC\n");
+        return;
+    case A_NEGATE:
+        fprintf(stdout, "A_NEGATE\n");
+        return;
+    case A_BREAK:
+        fprintf(stdout, "A_BREAK\n");
+        return;
+    case A_CONTINUE:
+        fprintf(stdout, "A_CONTINUE\n");
+        return;
+    case A_CASE:
+        fprintf(stdout, "A_CASE %d\n", n->a_intvalue);
+        return;
+    case A_DEFAULT:
+        fprintf(stdout, "A_DEFAULT\n");
+        return;
+    case A_SWITCH:
+        fprintf(stdout, "A_SWITCH\n");
+        return;
+    case A_CAST:
+        fprintf(stdout, "A_CAST %d\n", n->type);
+        return;
+    case A_ASPLUS:
+        fprintf(stdout, "A_ASPLUS\n");
+        return;
+    case A_ASMINUS:
+        fprintf(stdout, "A_ASMINUS\n");
+        return;
+    case A_ASSTAR:
+        fprintf(stdout, "A_ASSTAR\n");
+        return;
+    case A_ASSLASH:
+        fprintf(stdout, "A_ASSLASH\n");
         return;
     default:
         fatald("Unknown dumpAST operator", n->op);
