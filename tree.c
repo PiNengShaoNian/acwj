@@ -22,7 +22,7 @@ struct ASTnode *mkastnode(int op, int type,
     n->mid = mid;
     n->right = right;
     n->sym = sym;
-    n->intvalue = intvalue;
+    n->a_intvalue = intvalue;
     return n;
 }
 
@@ -134,7 +134,7 @@ void dumpAST(struct ASTnode *n, int label, int level)
         fprintf(stdout, "A_GE\n");
         return;
     case A_INTLIT:
-        fprintf(stdout, "A_INTLIT %d\n", n->intvalue);
+        fprintf(stdout, "A_INTLIT %d\n", n->a_intvalue);
         return;
     case A_IDENT:
         if (n->rvalue)
@@ -144,6 +144,18 @@ void dumpAST(struct ASTnode *n, int label, int level)
         return;
     case A_ASSIGN:
         fprintf(stdout, "A_ASSIGN\n");
+        return;
+    case A_ASPLUS:
+        fprintf(stdout, "A_ASPLUS\n");
+        return;
+    case A_ASMINUS:
+        fprintf(stdout, "A_ASMINUS\n");
+        return;
+    case A_ASSTAR:
+        fprintf(stdout, "A_ASSTAR\n");
+        return;
+    case A_ASSLASH:
+        fprintf(stdout, "A_ASSLASH\n");
         return;
     case A_WIDEN:
         fprintf(stdout, "A_WIDEN\n");
@@ -164,7 +176,7 @@ void dumpAST(struct ASTnode *n, int label, int level)
             fprintf(stdout, "A_DEREF\n");
         return;
     case A_SCALE:
-        fprintf(stdout, "A_SCALE %d\n", n->size);
+        fprintf(stdout, "A_SCALE %d\n", n->a_size);
         return;
     default:
         fatald("Unknown dumpAST operator", n->op);

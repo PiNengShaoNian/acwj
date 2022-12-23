@@ -27,6 +27,10 @@ enum
 
     // Binary operators
     T_ASSIGN,
+    T_ASPLUS,
+    T_ASMINUS,
+    T_ASSTAR,
+    T_ASSLASH,
     T_LOGOR,
     T_LOGAND,
     T_OR,
@@ -96,6 +100,10 @@ enum
 enum
 {
     A_ASSIGN = 1,
+    A_ASPLUS,
+    A_ASMINUS,
+    A_ASSTAR,
+    A_ASSLASH,
     A_LOGOR,
     A_LOGAND,
     A_OR,
@@ -167,11 +175,8 @@ struct ASTnode
     struct ASTnode *right;
     struct symtable *sym; // For any AST nodes, the pointer to
                           // the symbol in the symbol table
-    union
-    {
-        int intvalue; // For A_INTLIT, the integer value
-        int size;     // For A_SCALE, the size to scale by
-    };
+#define a_intvalue a_size // For A_INTLIT, the integer value
+    int a_size;           // For A_SCALE, the size to scale by
 };
 
 // Structural types
@@ -200,19 +205,16 @@ enum
 // Symbol table structure
 struct symtable
 {
-    char *name;             // Name of a symbol
-    int type;               // Primitive type for the symbol
-    struct symtable *ctype; // If struct/union, ptr to that type
-    int stype;              // Structural type for the symbol
-    int class;              // Storage class for the symbol
-    int size;               // Total size in bytes of this symbol
-    int nelems;             // Functions: # params. Arrays: # elements
-    union
-    {
-        int endlabel; // For functions, the end label
-        int posn;     // For locals, the negative offset
-                      // from the stack base pointer
-    };
+    char *name;              // Name of a symbol
+    int type;                // Primitive type for the symbol
+    struct symtable *ctype;  // If struct/union, ptr to that type
+    int stype;               // Structural type for the symbol
+    int class;               // Storage class for the symbol
+    int size;                // Total size in bytes of this symbol
+    int nelems;              // Functions: # params. Arrays: # elements
+#define st_endlabel st_posn  // For functions, the end label
+    int st_posn;             // For locals, the negative offset
+                             // from the stack base pointer
     int *initlist;           // List of initial values
     struct symtable *next;   // Next symbol in one list
     struct symtable *member; // First member of a function, struct,

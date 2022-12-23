@@ -696,7 +696,7 @@ static struct symtable *composite_declaration(int type)
     // Set the offset of the initial member
     // and find the first free byte after it
     m = ctype->member;
-    m->posn = 0;
+    m->st_posn = 0;
     offset = typesize(m->type, m->ctype);
 
     // Set the position of each successive member in the composite type
@@ -705,12 +705,12 @@ static struct symtable *composite_declaration(int type)
     {
         // Set the offset for this member
         if (type == P_STRUCT)
-            m->posn = genalign(m->type, offset, 1);
+            m->st_posn = genalign(m->type, offset, 1);
         else
-            m->posn = 0;
+            m->st_posn = 0;
 
         // Get the offset of the next free byte after this member
-        offset = m->posn + typesize(m->type, m->ctype);
+        offset = m->st_posn + typesize(m->type, m->ctype);
     }
 
     // Set the overall size of the struct

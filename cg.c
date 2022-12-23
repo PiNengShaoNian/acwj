@@ -189,12 +189,12 @@ void cgfuncpreamble(struct symtable *sym)
     {
         if (cnt > 6)
         {
-            param->posn = paramOffset;
+            param->st_posn = paramOffset;
             paramOffset += 8;
         }
         else
         {
-            param->posn = newlocaloffset(param->type);
+            param->st_posn = newlocaloffset(param->type);
             cgstorlocal(paramReg--, param);
         }
     }
@@ -203,7 +203,7 @@ void cgfuncpreamble(struct symtable *sym)
     // already on the stack. If only a local, make a stack position.
     for (locvar = Loclhead; locvar != NULL; locvar = locvar->next)
     {
-        locvar->posn = newlocaloffset(locvar->type);
+        locvar->st_posn = newlocaloffset(locvar->type);
     }
 
     // Align the stack pointer to be a multiple of 16
@@ -215,7 +215,7 @@ void cgfuncpreamble(struct symtable *sym)
 // Print out a function postamble
 void cgfuncpostamble(struct symtable *sym)
 {
-    cglabel(sym->endlabel);
+    cglabel(sym->st_endlabel);
     fprintf(Outfile, "\taddq\t$%d,%%rsp\n", stackOffset);
     fputs("\tpopq %rbp\n"
           "\tret\n",
@@ -542,7 +542,7 @@ void cgreturn(int reg, struct symtable *sym)
     default:
         fatald("Bad function type in cgreturn:", sym->type);
     }
-    cgjump(sym->endlabel);
+    cgjump(sym->st_endlabel);
 }
 
 // Generate code to load the address of a global
@@ -552,7 +552,7 @@ int cgaddress(struct symtable *sym)
     int r = alloc_register();
 
     if (sym->class == C_LOCAL)
-        fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->posn,
+        fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->st_posn,
                 reglist[r]);
     else
         fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", sym->name,
@@ -725,15 +725,15 @@ int cgloadlocal(struct symtable *sym, int op)
     if (cgprimsize(sym->type) == 8)
     {
         if (op == A_PREINC)
-            fprintf(Outfile, "\tincq\t%d(%%rbp)\n", sym->posn);
+            fprintf(Outfile, "\tincq\t%d(%%rbp)\n", sym->st_posn);
         if (op == A_PREDEC)
-            fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", sym->posn);
-        fprintf(Outfile, "\tmovq\t%d(%%rbp), %s\n", sym->posn,
+            fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", sym->st_posn);
+        fprintf(Outfile, "\tmovq\t%d(%%rbp), %s\n", sym->st_posn,
                 reglist[r]);
         if (op == A_POSTINC)
-            fprintf(Outfile, "\tincq\t%d(%%rbp)\n", sym->posn);
+            fprintf(Outfile, "\tincq\t%d(%%rbp)\n", sym->st_posn);
         if (op == A_POSTDEC)
-            fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", sym->posn);
+            fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", sym->st_posn);
     }
     else
     {
@@ -741,27 +741,27 @@ int cgloadlocal(struct symtable *sym, int op)
         {
         case P_CHAR:
             if (op == A_PREINC)
-                fprintf(Outfile, "\tincb\t%d(%%rbp)\n", sym->posn);
+                fprintf(Outfile, "\tincb\t%d(%%rbp)\n", sym->st_posn);
             if (op == A_PREDEC)
-                fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", sym->posn);
-            fprintf(Outfile, "\tmovzbq\t%d(%%rbp), %s\n", sym->posn,
+                fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", sym->st_posn);
+            fprintf(Outfile, "\tmovzbq\t%d(%%rbp), %s\n", sym->st_posn,
                     reglist[r]);
             if (op == A_POSTINC)
-                fprintf(Outfile, "\tincb\t%d(%%rbp)\n", sym->posn);
+                fprintf(Outfile, "\tincb\t%d(%%rbp)\n", sym->st_posn);
             if (op == A_POSTDEC)
-                fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", sym->posn);
+                fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", sym->st_posn);
             break;
         case P_INT:
             if (op == A_PREINC)
-                fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->posn);
+                fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->st_posn);
             if (op == A_PREDEC)
-                fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", sym->posn);
-            fprintf(Outfile, "\tmovslq\t%d(%%rbp), %s\n", sym->posn,
+                fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", sym->st_posn);
+            fprintf(Outfile, "\tmovslq\t%d(%%rbp), %s\n", sym->st_posn,
                     reglist[r]);
             if (op == A_POSTINC)
-                fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->posn);
+                fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->st_posn);
             if (op == A_POSTDEC)
-                fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", sym->posn);
+                fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", sym->st_posn);
             break;
         default:
             fatald("Bad type in cgloadlocal:", sym->type);
@@ -777,7 +777,7 @@ int cgstorlocal(int r, struct symtable *sym)
     if (cgprimsize(sym->type) == 8)
     {
         fprintf(Outfile, "\tmovq\t%s, %d(%%rbp)\n", reglist[r],
-                sym->posn);
+                sym->st_posn);
     }
     else
     {
@@ -785,11 +785,11 @@ int cgstorlocal(int r, struct symtable *sym)
         {
         case P_CHAR:
             fprintf(Outfile, "\tmovb\t%s, %d(%%rbp)\n", breglist[r],
-                    sym->posn);
+                    sym->st_posn);
             break;
         case P_INT:
             fprintf(Outfile, "\tmovl\t%s, %d(%%rbp)\n", dreglist[r],
-                    sym->posn);
+                    sym->st_posn);
             break;
         default:
             fatald("Bad type in cgstorlocal:", sym->type);

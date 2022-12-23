@@ -6,9 +6,9 @@
 // We rely on a 1:1 mapping from token to AST operation.
 int binastop(int tokentype)
 {
-    if (tokentype > T_EOF && tokentype < T_INTLIT)
-        return tokentype;
-    fatald("arithop: Syntax error, token", tokentype);
+    if (tokentype > T_EOF && tokentype <= T_SLASH)
+        return (tokentype);
+    fatald("Syntax error, token", tokentype);
     return (0); // Keep -Wall happy
 }
 
@@ -173,7 +173,7 @@ static struct ASTnode *member_access(int withpointer)
         fatals("No member found in struct/union: ", Text);
 
     // Build an A_INTLIT node with the offset
-    right = mkastleaf(A_INTLIT, P_INT, NULL, m->posn);
+    right = mkastleaf(A_INTLIT, P_INT, NULL, m->st_posn);
 
     // Add the member's offset to the base of the struct and
     // dereference it. Still an lvalue at this point
@@ -197,7 +197,7 @@ static struct ASTnode *postfix(void)
     if ((enumptr = findenumval(Text)) != NULL)
     {
         scan(&Token);
-        return (mkastleaf(A_INTLIT, P_INT, NULL, enumptr->posn));
+        return (mkastleaf(A_INTLIT, P_INT, NULL, enumptr->st_posn));
     }
 
     // Scan in the next token to see if we have a postfix expression
@@ -424,15 +424,17 @@ struct ASTnode *prefix(void)
 // false otherwise.
 static int rightassoc(int tokentype)
 {
-    if (tokentype == T_ASSIGN)
+    if (tokentype >= T_ASSIGN && tokentype <= T_ASSLASH)
         return (1);
     return (0);
 }
 
-// Operator precedence for each binary token. Must
+// Operator precedence for each token. Must
 // match up with the order of tokens in defs.h
 static int OpPrec[] = {
-    0, 10, 20, 30,  // T_EOF, T_ASSIGN, T_LOGOR, T_LOGAND
+    0, 10, 10,      // T_EOF, T_ASSIGN, T_ASPLUS,
+    10, 10, 10,     // T_ASMINUS, T_ASSTAR, T_ASSLASH,
+    20, 30,         // T_LOGOR, T_LOGAND
     40, 50, 60,     // T_OR, T_XOR, T_AMPER
     70, 70,         // T_EQ, T_NE
     80, 80, 80, 80, // T_LT, T_GT, T_LE, T_GE

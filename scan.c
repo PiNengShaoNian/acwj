@@ -16,7 +16,8 @@ void reject_token(struct token *t)
 
 // List of token strings, for debugging purposes
 char *Tstring[] = {
-    "EOF", "=", "||", "&&", "|", "^", "&",
+    "EOF", "=", "+=", "-=", "*=", "/=",
+    "||", "&&", "|", "^", "&",
     "==", "!=", ",", ">", "<=", ">=", "<<", ">>",
     "+", "-", "*", "/", "++", "--", "~", "!",
     "void", "char", "int", "long",
@@ -322,6 +323,10 @@ int scan(struct token *t)
         {
             t->token = T_INC;
         }
+        else if (c == '=')
+        {
+            t->token = T_ASPLUS;
+        }
         else
         {
             putback(c);
@@ -337,6 +342,16 @@ int scan(struct token *t)
         {
             t->token = T_ARROW;
         }
+        else if (c == '=')
+        {
+            t->token = T_ASMINUS;
+        }
+        else if (isdigit(c))
+        {
+            // Negative int literal
+            t->intvalue = -scanint(c);
+            t->token = T_INTLIT;
+        }
         else
         {
             putback(c);
@@ -344,10 +359,26 @@ int scan(struct token *t)
         }
         break;
     case '*':
-        t->token = T_STAR;
+        if ((c = next()) == '=')
+        {
+            t->token = T_ASSTAR;
+        }
+        else
+        {
+            putback(c);
+            t->token = T_STAR;
+        }
         break;
     case '/':
-        t->token = T_SLASH;
+        if ((c = next()) == '=')
+        {
+            t->token = T_ASSLASH;
+        }
+        else
+        {
+            putback(c);
+            t->token = T_SLASH;
+        }
         break;
     case ';':
         t->token = T_SEMI;
