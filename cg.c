@@ -528,36 +528,41 @@ int cgcall(struct symtable *sym, int numargs)
 // Generate code to return a value from a function
 void cgreturn(int reg, struct symtable *sym)
 {
-    // Generate code depending on the function's type
-    switch (sym->type)
-    {
-    case P_CHAR:
-        fprintf(Outfile, "\tmovzbl\t%s, %%eax\n", breglist[reg]);
-        break;
-    case P_INT:
-        fprintf(Outfile, "\tmovl\t%s, %%eax\n", dreglist[reg]);
-        break;
-    case P_LONG:
+    // Deal with pointers here as we can't put them in
+    // the switch statement
+    if (ptrtype(sym->type))
         fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
-        break;
-    default:
-        fatald("Bad function type in cgreturn:", sym->type);
+    else
+    {
+        // Generate code depending on the function's type
+        switch (sym->type)
+        {
+        case P_CHAR:
+            fprintf(Outfile, "\tmovzbl\t%s, %%eax\n", breglist[reg]);
+            break;
+        case P_INT:
+            fprintf(Outfile, "\tmovl\t%s, %%eax\n", dreglist[reg]);
+            break;
+        case P_LONG:
+            fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
+            break;
+        default:
+            fatald("Bad function type in cgreturn:", sym->type);
+        }
     }
     cgjump(sym->st_endlabel);
 }
 
-// Generate code to load the address of a global
+// Generate code to load the address of an
 // identifier into a variable. Return a new register
 int cgaddress(struct symtable *sym)
 {
     int r = alloc_register();
 
-    if (sym->class == C_LOCAL)
-        fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->st_posn,
-                reglist[r]);
+    if (sym->class == C_GLOBAL || sym->class == C_STATIC)
+        fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[r]);
     else
-        fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", sym->name,
-                reglist[r]);
+        fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->st_posn, reglist[r]);
     return (r);
 }
 

@@ -78,6 +78,7 @@ enum
     T_CASE,
     T_DEFAULT,
     T_SIZEOF,
+    T_STATIC,
 
     // Structural tokens
     T_INTLIT,
@@ -195,12 +196,13 @@ enum
     C_LOCAL,      // Locally visible symbol
     C_PARAM,      // Locally visible function parameter
     C_EXTERN,     // External globally visible symbol
-    C_STRUCT,     // A struct
-    C_UNION,      // A union
-    C_MEMBER,     // Member of a struct or union
-    C_ENUMTYPE,   // A named enumeration type
-    C_ENUMVAL,    // A named enumeration value
-    C_TYPEDEF     // A named typedef
+    C_STATIC,     // Static symbol, visible in one file
+    C_STRUCT,   // A struct
+    C_UNION,    // A union
+    C_MEMBER,   // Member of a struct or union
+    C_ENUMTYPE, // A named enumeration type
+    C_ENUMVAL,  // A named enumeration value
+    C_TYPEDEF   // A named typedef
 };
 
 // Symbol table structure
