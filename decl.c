@@ -90,7 +90,7 @@ int parse_type(struct symtable **ctype, int *class)
 
 // Given a type parsed by parse_type(), scan in any following
 // '*' tokens and return the new type
-static int parse_stars(int type)
+int parse_stars(int type)
 {
     // Scan in one or more further '*' tokens
     // and determine the correct pointer type

@@ -12,7 +12,7 @@ char *Tstring[] = {
     "if", "else", "while", "for", "return",
     "struct", "union", "enum", "typedef",
     "extern", "break", "continue", "switch",
-    "case", "default",
+    "case", "default", "sizeof",
     "intlit", "strlit", ";", "identifier",
     "{", "}", "(", ")", "[", "]", ",", ".",
     "->", ":"};
@@ -153,6 +153,8 @@ static int keyword(char *s)
             return (T_STRUCT);
         if (!strcmp(s, "switch"))
             return (T_SWITCH);
+        if (!strcmp(s, "sizeof"))
+            return (T_SIZEOF);
         break;
     case 'u':
         if (!strcmp(s, "union"))

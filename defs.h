@@ -77,6 +77,7 @@ enum
     T_SWITCH,
     T_CASE,
     T_DEFAULT,
+    T_SIZEOF,
 
     // Structural tokens
     T_INTLIT,
