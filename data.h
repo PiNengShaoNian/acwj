@@ -8,9 +8,10 @@ extern_ int Line;
 extern_ int Putback;
 extern_ FILE *Infile;
 extern_ FILE *Outfile;
-extern_ char *Infilename;  // Name of file we are parsing
-extern_ char *Outfilename; // Name of file we opened as Outfile
-extern_ struct token Token;
+extern_ char *Infilename;       // Name of file we are parsing
+extern_ char *Outfilename;      // Name of file we opened as Outfile
+extern_ struct token Token;     // Last token scanned
+extern_ struct token Peektoken; // A look-ahead token
 extern_ char Text[TEXTLEN];
 extern_ struct symtable *Functionid; // Symbol id of the current function
 extern_ int Looplevel;               // Symbol id of the current function
