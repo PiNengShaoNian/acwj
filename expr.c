@@ -453,6 +453,7 @@ static int rightassoc(int tokentype)
 static int OpPrec[] = {
     0, 10, 10,      // T_EOF, T_ASSIGN, T_ASPLUS,
     10, 10, 10,     // T_ASMINUS, T_ASSTAR, T_ASSLASH,
+    15,             // T_QUESTION,
     20, 30,         // T_LOGOR, T_LOGAND
     40, 50, 60,     // T_OR, T_XOR, T_AMPER
     70, 70,         // T_EQ, T_NE
@@ -512,8 +513,18 @@ struct ASTnode *binexpr(int ptp)
         // Determine the operation to be performed on the sub-trees
         ASTop = binastop(tokentype);
 
-        if (ASTop == A_ASSIGN)
+        switch (ASTop)
         {
+        case A_TERNARY:
+            // Ensure we have a ':' token, scan in the expression after it
+            match(T_COLON, ":");
+            ltemp = binexpr(0);
+
+            // Build and return the AST for this statement. Use the middle
+            // expression's type as the return type. XXX we should also
+            // consider the third expression's type.
+            return (mkastnode(A_TERNARY, right->type, left, right, ltemp, NULL, 0));
+        case A_ASSIGN:
             // Assignment
             // Make the right tree into a rvalue
             right->rvalue = 1;
@@ -529,9 +540,8 @@ struct ASTnode *binexpr(int ptp)
             ltemp = left;
             left = right;
             right = ltemp;
-        }
-        else
-        {
+            break;
+        default:
             // We are not doing an assignment, so both trees should be rvalues
             // Convert both trees into rvalue if they are lvalue trees
             left->rvalue = 1;

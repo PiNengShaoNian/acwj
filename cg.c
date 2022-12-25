@@ -91,15 +91,19 @@ static char *dreglist[] =
     {"%r10d", "%r11d", "%r12d", "%r13d", "%r9d", "%r8d", "%ecx", "%edx",
      "%esi", "%edi"};
 
-// Set all registers as available
-void freeall_registers(void)
+// Set all registers as available.
+// But if reg is positive, don't free that one.
+void freeall_registers(int keepreg)
 {
-    freereg[0] = freereg[1] = freereg[2] = freereg[3] = 1;
+    int i;
+    for (i = 0; i < NUMFREEREGS; i++)
+        if (i != keepreg)
+            freereg[i] = 1;
 }
 
 // Allocate a free register. Return the number of
 // the register. Die if no available register
-static int alloc_register(void)
+int alloc_register(void)
 {
     for (int i = 0; i < NUMFREEREGS; i++)
     {
@@ -127,7 +131,7 @@ static void free_register(int reg)
 // Print out the assembly preamble
 void cgpreamble()
 {
-    freeall_registers();
+    freeall_registers(NOREG);
     cgtextseg();
     fprintf(Outfile,
             "# internal switch(expr) routine\n"
@@ -473,7 +477,7 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label)
 
     fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
     fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
-    freeall_registers();
+    freeall_registers(NOREG);
     return NOREG;
 }
 
@@ -857,4 +861,10 @@ void cgswitch(int reg, int casecount, int toplabel, int *caselabel, int *caseval
     fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
     fprintf(Outfile, "\tleaq\tL%d(%%rip), %%rdx\n", label);
     fprintf(Outfile, "\tjmp\tswitch\n");
+}
+
+// Move value between registers
+void cgmove(int r1, int r2)
+{
+    fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r1], reglist[r2]);
 }

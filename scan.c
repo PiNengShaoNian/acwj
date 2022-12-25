@@ -5,7 +5,7 @@
 // List of token strings, for debugging purposes
 char *Tstring[] = {
     "EOF", "=", "+=", "-=", "*=", "/=",
-    "||", "&&", "|", "^", "&",
+    "?", "||", "&&", "|", "^", "&",
     "==", "!=", ",", ">", "<=", ">=", "<<", ">>",
     "+", "-", "*", "/", "++", "--", "~", "!",
     "void", "char", "int", "long",
@@ -475,6 +475,9 @@ int scan(struct token *t)
         break;
     case ':':
         t->token = T_COLON;
+        break;
+    case '?':
+        t->token = T_QUESTION;
         break;
     case '=':
         if ((c = next()) == '=')

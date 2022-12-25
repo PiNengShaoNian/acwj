@@ -31,6 +31,7 @@ enum
     T_ASMINUS,
     T_ASSTAR,
     T_ASSLASH,
+    T_QUESTION,
     T_LOGOR,
     T_LOGAND,
     T_OR,
@@ -106,6 +107,7 @@ enum
     A_ASMINUS,
     A_ASSTAR,
     A_ASSLASH,
+    A_TERNARY,
     A_LOGOR,
     A_LOGAND,
     A_OR,
@@ -197,12 +199,12 @@ enum
     C_PARAM,      // Locally visible function parameter
     C_EXTERN,     // External globally visible symbol
     C_STATIC,     // Static symbol, visible in one file
-    C_STRUCT,   // A struct
-    C_UNION,    // A union
-    C_MEMBER,   // Member of a struct or union
-    C_ENUMTYPE, // A named enumeration type
-    C_ENUMVAL,  // A named enumeration value
-    C_TYPEDEF   // A named typedef
+    C_STRUCT,     // A struct
+    C_UNION,      // A union
+    C_MEMBER,     // Member of a struct or union
+    C_ENUMTYPE,   // A named enumeration type
+    C_ENUMVAL,    // A named enumeration value
+    C_TYPEDEF     // A named typedef
 };
 
 // Symbol table structure
