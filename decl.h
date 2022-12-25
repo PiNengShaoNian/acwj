@@ -64,6 +64,8 @@ int cgstorderef(int r1, int r2, int type);
 int cgnegate(int r);
 int cginvert(int r);
 int cglognot(int r);
+int cglogor(int r1, int r2);
+int cglogand(int r1, int r2);
 int cgboolean(int r, int op, int label);
 int cgand(int r1, int r2);
 int cgor(int r1, int r2);
@@ -122,6 +124,8 @@ struct symtable *findtypedef(char *s);
 void clear_symtable(void);
 void freeloclsyms(void);
 void freestaticsyms(void);
+void dumptable(struct symtable *head, char *name, int indent);
+void dumpsymtables(void);
 
 // decl.c
 int parse_type(struct symtable **ctype, int *class);

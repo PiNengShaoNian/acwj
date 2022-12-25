@@ -707,6 +707,62 @@ int cglognot(int r)
     return (r);
 }
 
+// Logically OR two registers and return a
+// register with the result, 1 or 0
+int cglogor(int r1, int r2)
+{
+    // Generate two labels
+    int Ltrue = genlabel();
+    int Lend = genlabel();
+
+    // Test r1 and jump to true label if true
+    fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r1], reglist[r1]);
+    fprintf(Outfile, "\tjne\tL%d\n", Ltrue);
+
+    // Test r2 and jump to true label if true
+    fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r2], reglist[r2]);
+    fprintf(Outfile, "\tjne\tL%d\n", Ltrue);
+
+    // Didn't jump, so result is false
+    fprintf(Outfile, "\tmovq\t$0, %s\n", reglist[r1]);
+    fprintf(Outfile, "\tjmp\tL%d\n", Lend);
+
+    // Someone jumped to the true label, so result is true
+    cglabel(Ltrue);
+    fprintf(Outfile, "\tmovq\t$1, %s\n", reglist[r1]);
+    cglabel(Lend);
+    free_register(r2);
+    return (r1);
+}
+
+// Logically AND two registers and return a
+// register with the result, 1 or 0
+int cglogand(int r1, int r2)
+{
+    // Generate two labels
+    int Lfalse = genlabel();
+    int Lend = genlabel();
+
+    // Test r1 and jump to false label if not true
+    fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r1], reglist[r1]);
+    fprintf(Outfile, "\tje\tL%d\n", Lfalse);
+
+    // Test r2 and jump to false label if not true
+    fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r2], reglist[r2]);
+    fprintf(Outfile, "\tje\tL%d\n", Lfalse);
+
+    // Didn't jump, so result is true
+    fprintf(Outfile, "\tmovq\t$1, %s\n", reglist[r1]);
+    fprintf(Outfile, "\tjmp\tL%d\n", Lend);
+
+    // Someone jumped to the false label, so result is false
+    cglabel(Lfalse);
+    fprintf(Outfile, "\tmovq\t$0, %s\n", reglist[r1]);
+    cglabel(Lend);
+    free_register(r2);
+    return (r1);
+}
+
 // Convert an integer value to a boolean value. Jump if
 // it's an IF or WHILE operation
 int cgboolean(int r, int op, int label)

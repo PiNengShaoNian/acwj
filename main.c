@@ -78,7 +78,16 @@ static char *do_compile(char *filename)
     global_declarations(); // Parse the global declarations
     genpostamble();        // Output the postamble
     fclose(Outfile);       // Close the output file
-    freestaticsyms();      // Free any static symbols in the file
+
+    // Dump the symbol table if requested
+    if (O_dumpsym)
+    {
+        printf("Symbols for %s\n", filename);
+        dumpsymtables();
+        fprintf(stdout, "\n\n");
+    }
+
+    freestaticsyms(); // Free any static symbols in the file
     return (Outfilename);
 }
 
@@ -166,6 +175,7 @@ int main(int argc, char *argv[])
 
     // Initialise our variables
     O_dumpAST = 0;
+    O_dumpsym = 0;
     O_keepasm = 0;
     O_assemble = 0;
     O_verbose = 0;
@@ -188,6 +198,9 @@ int main(int argc, char *argv[])
                 break;
             case 'T':
                 O_dumpAST = 1;
+                break;
+            case 'M':
+                O_dumpsym = 1;
                 break;
             case 'c':
                 O_assemble = 1;

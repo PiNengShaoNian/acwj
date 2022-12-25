@@ -204,6 +204,10 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
         return (cginvert(leftreg));
     case A_LOGNOT:
         return (cglognot(leftreg));
+    case A_LOGOR:
+        return (cglogor(leftreg, rightreg));
+    case A_LOGAND:
+        return (cglogand(leftreg, rightreg));
     case A_TOBOOL:
         // If the parent AST node is an A_IF or A_WHILE, generate
         // a compare followed by a jump. Otherwise, set the register
@@ -367,7 +371,8 @@ static int genSWITCH(struct ASTnode *n)
             casecount++;
 
         // Generate the case code. Pass in the end label for the breaks
-        genAST(c->left, NOLABEL, NOLABEL, Lend, 0);
+        if (c->left)
+            genAST(c->left, NOLABEL, NOLABEL, Lend, 0);
         genfreeregs(NOREG);
     }
 

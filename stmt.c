@@ -177,7 +177,8 @@ static struct ASTnode *continue_statement(void)
 // Parse a switch statement and return its AST
 static struct ASTnode *switch_statement(void)
 {
-    struct ASTnode *left, *n, *c, *casetree = NULL, *casetail;
+    struct ASTnode *left, *body, *n, *c;
+    struct ASTnode *casetree = NULL, *casetail;
     int inloop = 1, casecount = 0;
     int seendefault = 0;
     int ASTop, casevalue;
@@ -245,18 +246,24 @@ static struct ASTnode *switch_statement(void)
 
             // Scan the ':' and get the compound expression
             match(T_COLON, ":");
-            left = compound_statement(1);
             casecount++;
+
+            // If the next token is a T_CASE, the existing case will fall
+            // into the next case. Otherwise, parse the case body.
+            if (Token.token == T_CASE)
+                body = NULL;
+            else
+                body = compound_statement(1);
 
             // Build a sub-tree with the compound statement as the left child
             // and link it in to the growing A_CASE tree
             if (casetree == NULL)
             {
-                casetree = casetail = mkastunary(ASTop, 0, left, NULL, casevalue);
+                casetree = casetail = mkastunary(ASTop, 0, body, NULL, casevalue);
             }
             else
             {
-                casetail->right = mkastunary(ASTop, 0, left, NULL, casevalue);
+                casetail->right = mkastunary(ASTop, 0, body, NULL, casevalue);
                 casetail = casetail->right;
             }
             break;
