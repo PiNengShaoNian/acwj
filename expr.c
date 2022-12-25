@@ -92,12 +92,24 @@ static struct ASTnode *array_access(void)
 
     // Check that the identifier has been defined as an array
     // then make a leaf node for it that points at the base
-    if ((aryptr = findsymbol(Text)) == NULL || aryptr->stype != S_ARRAY)
+    if ((aryptr = findsymbol(Text)) == NULL)
     {
         fatals("Undeclared array", Text);
     }
 
-    left = mkastleaf(A_ADDR, aryptr->type, aryptr, 0);
+    if (aryptr->stype != S_ARRAY &&
+        (aryptr->stype == S_VARIABLE && !ptrtype(aryptr->type)))
+        fatals("Not an array or pointer", Text);
+
+    // Make a leaf node for it that points at the base of
+    // the array, or loads the pointer's value as an rvalue
+    if (aryptr->stype == S_ARRAY)
+        left = mkastleaf(A_ADDR, aryptr->type, aryptr, 0);
+    else
+    {
+        left = mkastleaf(A_IDENT, aryptr->type, aryptr, 0);
+        left->rvalue = 1;
+    }
 
     // Get the '['
     scan(&Token);
@@ -191,6 +203,7 @@ static struct ASTnode *postfix(void)
     struct ASTnode *n;
     struct symtable *varptr;
     struct symtable *enumptr;
+    int rvalue = 0;
 
     // If the identifier matches an enum value,
     // return an A_INTLIT node
@@ -219,25 +232,47 @@ static struct ASTnode *postfix(void)
 
     // A variable. Check that the variable exists.
     varptr = findsymbol(Text);
-    if (varptr == NULL || (varptr->stype != S_VARIABLE &&
-                           varptr->stype != S_ARRAY))
+    if (varptr == NULL)
         fatals("Unknown variable", Text);
+
+    // An identifier, check that it exists. For arrays, set rvalue to 1.
+    switch (varptr->stype)
+    {
+    case S_VARIABLE:
+        break;
+    case S_ARRAY:
+        rvalue = 1;
+        break;
+    default:
+        fatals("Identifier not a scalar or array variable", Text);
+    }
 
     switch (Token.token)
     {
     // Post-increment: skip over the token
     case T_INC:
+        if (rvalue == 1)
+            fatals("Cannot ++ on rvalue", Text);
         scan(&Token);
         n = mkastleaf(A_POSTINC, varptr->type, varptr, 0);
         break;
     // Post-decrement: skip over the token
     case T_DEC:
+        if (rvalue == 1)
+            fatals("Cannot -- on rvalue", Text);
         scan(&Token);
         n = mkastleaf(A_POSTDEC, varptr->type, varptr, 0);
         break;
-        // Just a variable reference
+        // Just a variable reference. Ensure any arrays
+        // cannot be treaded as lvalues.
     default:
-        n = mkastleaf(A_IDENT, varptr->type, varptr, 0);
+        if (varptr->stype == S_ARRAY)
+        {
+            n = mkastleaf(A_ADDR, varptr->type, varptr, 0);
+            n->rvalue = rvalue;
+        }
+        else
+            n = mkastleaf(A_IDENT, varptr->type, varptr, 0);
     }
 
     return (n);
