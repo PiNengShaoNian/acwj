@@ -91,6 +91,17 @@ static char *dreglist[] =
     {"%r10d", "%r11d", "%r12d", "%r13d", "%r9d", "%r8d", "%ecx", "%edx",
      "%esi", "%edi"};
 
+// Push and pop a register on/off the stack
+static void pushreg(int r)
+{
+    fprintf(Outfile, "\tpushq\t%s\n", reglist[r]);
+}
+
+static void popreg(int r)
+{
+    fprintf(Outfile, "\tpopq\t%s\n", reglist[r]);
+}
+
 // Set all registers as available.
 // But if reg is positive, don't free that one.
 void freeall_registers(int keepreg)
@@ -101,21 +112,34 @@ void freeall_registers(int keepreg)
             freereg[i] = 1;
 }
 
+// When we need to spill a register, we choose
+// the following register and then cycle through
+// the remaining registers. The spillreg increments
+// continually, so we need to take a modulo NUMFREEREGS
+// on it.
+static int spillreg = 0;
+
 // Allocate a free register. Return the number of
 // the register. Die if no available register
 int alloc_register(void)
 {
-    for (int i = 0; i < NUMFREEREGS; i++)
+    int reg;
+
+    for (reg = 0; reg < NUMFREEREGS; reg++)
     {
-        if (freereg[i])
+        if (freereg[reg])
         {
-            freereg[i] = 0;
-            return i;
+            freereg[reg] = 0;
+            return (reg);
         }
     }
 
-    fatal("Out of registers");
-    return (NOREG); // Keep -Wall happy
+    // We have no registers, so we must spill one
+    reg = (spillreg % NUMFREEREGS);
+    spillreg++;
+    fprintf(Outfile, "# spilling reg %d\n", reg);
+    pushreg(reg);
+    return (reg);
 }
 
 // Return a register to the list of available registers.
@@ -125,7 +149,37 @@ static void free_register(int reg)
     if (freereg[reg] != 0)
         fatald("Error trying to free register", reg);
 
-    freereg[reg] = 1;
+    // If this was a spilled register, get it back
+    if (spillreg > 0)
+    {
+        spillreg--;
+        reg = (spillreg % NUMFREEREGS);
+        fprintf(Outfile, "# unspilling reg %d\n", reg);
+        popreg(reg);
+    }
+    else
+    {
+        freereg[reg] = 1;
+    }
+}
+
+// Spill all registers on the stack
+void spill_all_regs(void)
+{
+    int i;
+    for (i = 0; i < NUMFREEREGS; i++)
+    {
+        pushreg(i);
+    }
+}
+
+// Unspill all registers from the stack
+static void unspill_all_regs(void)
+{
+    int i;
+
+    for (i = NUMFREEREGS - 1; i >= 0; i--)
+        popreg(i);
 }
 
 // Print out the assembly preamble
@@ -392,18 +446,18 @@ void cgglobsym(struct symtable *node)
 // the number of the register with the result
 int cgadd(int r1, int r2)
 {
-    fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r1], reglist[r2]);
-    free_register(r1);
-    return r2;
+    fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r2], reglist[r1]);
+    free_register(r2);
+    return (r1);
 }
 
 // Multiply two registers together and return
 // the number of the register with the result
 int cgmul(int r1, int r2)
 {
-    fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r1], reglist[r2]);
-    free_register(r1);
-    return r2;
+    fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r2], reglist[r1]);
+    free_register(r2);
+    return (r1);
 }
 
 // Subtract the second register from the first and
@@ -514,8 +568,7 @@ int cgprimsize(int type)
 // Return the register with the result
 int cgcall(struct symtable *sym, int numargs)
 {
-    // Get a new register
-    int outr = alloc_register();
+    int outr;
 
     // Call the function
     fprintf(Outfile, "\tcall\t%s@PLT\n", sym->name);
@@ -524,7 +577,11 @@ int cgcall(struct symtable *sym, int numargs)
     if (numargs > 6)
         fprintf(Outfile, "\taddq\t$%d, %%rsp\n", 8 * (numargs - 6));
 
-    // and copy the return value into our register
+    // Unspill all the registers
+    unspill_all_regs();
+
+    // Get a new register and copy the return value into it
+    outr = alloc_register();
     fprintf(Outfile, "\tmovq\t%%rax, %s\n", reglist[outr]);
     return (outr);
 }
@@ -580,7 +637,6 @@ int cgderef(int r, int type)
 {
     // Get the type that we are pointing to
     int newtype = value_at(type);
-
     // Now get the size of this type
     int size = cgprimsize(newtype);
 
@@ -589,10 +645,9 @@ int cgderef(int r, int type)
     case 1:
         fprintf(Outfile, "\tmovzbq\t(%s), %s\n", reglist[r], reglist[r]);
         break;
-    case 2:
+    case 4:
         fprintf(Outfile, "\tmovslq\t(%s), %s\n", reglist[r], reglist[r]);
         break;
-    case 4:
     case 8:
         fprintf(Outfile, "\tmovq\t(%s), %s\n", reglist[r], reglist[r]);
         break;
@@ -660,23 +715,23 @@ int cgloadglobstr(int id)
 
 int cgand(int r1, int r2)
 {
-    fprintf(Outfile, "\tandq\t%s, %s\n", reglist[r1], reglist[r2]);
-    free_register(r1);
-    return (r2);
+    fprintf(Outfile, "\tandq\t%s, %s\n", reglist[r2], reglist[r1]);
+    free_register(r2);
+    return (r1);
 }
 
 int cgor(int r1, int r2)
 {
-    fprintf(Outfile, "\torq\t%s, %s\n", reglist[r1], reglist[r2]);
-    free_register(r1);
-    return (r2);
+    fprintf(Outfile, "\torq\t%s, %s\n", reglist[r2], reglist[r1]);
+    free_register(r2);
+    return (r1);
 }
 
 int cgxor(int r1, int r2)
 {
-    fprintf(Outfile, "\txorq\t%s, %s\n", reglist[r1], reglist[r2]);
-    free_register(r1);
-    return (r2);
+    fprintf(Outfile, "\txorq\t%s, %s\n", reglist[r2], reglist[r1]);
+    free_register(r2);
+    return (r1);
 }
 
 // Negate a register's value
@@ -718,71 +773,29 @@ int cglognot(int r)
     return (r);
 }
 
-// Logically OR two registers and return a
-// register with the result, 1 or 0
-int cglogor(int r1, int r2)
+// Load a boolean value (only 0 or 1)
+// into the given register
+void cgloadboolean(int r, int val)
 {
-    // Generate two labels
-    int Ltrue = genlabel();
-    int Lend = genlabel();
-
-    // Test r1 and jump to true label if true
-    fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r1], reglist[r1]);
-    fprintf(Outfile, "\tjne\tL%d\n", Ltrue);
-
-    // Test r2 and jump to true label if true
-    fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r2], reglist[r2]);
-    fprintf(Outfile, "\tjne\tL%d\n", Ltrue);
-
-    // Didn't jump, so result is false
-    fprintf(Outfile, "\tmovq\t$0, %s\n", reglist[r1]);
-    fprintf(Outfile, "\tjmp\tL%d\n", Lend);
-
-    // Someone jumped to the true label, so result is true
-    cglabel(Ltrue);
-    fprintf(Outfile, "\tmovq\t$1, %s\n", reglist[r1]);
-    cglabel(Lend);
-    free_register(r2);
-    return (r1);
-}
-
-// Logically AND two registers and return a
-// register with the result, 1 or 0
-int cglogand(int r1, int r2)
-{
-    // Generate two labels
-    int Lfalse = genlabel();
-    int Lend = genlabel();
-
-    // Test r1 and jump to false label if not true
-    fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r1], reglist[r1]);
-    fprintf(Outfile, "\tje\tL%d\n", Lfalse);
-
-    // Test r2 and jump to false label if not true
-    fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r2], reglist[r2]);
-    fprintf(Outfile, "\tje\tL%d\n", Lfalse);
-
-    // Didn't jump, so result is true
-    fprintf(Outfile, "\tmovq\t$1, %s\n", reglist[r1]);
-    fprintf(Outfile, "\tjmp\tL%d\n", Lend);
-
-    // Someone jumped to the false label, so result is false
-    cglabel(Lfalse);
-    fprintf(Outfile, "\tmovq\t$0, %s\n", reglist[r1]);
-    cglabel(Lend);
-    free_register(r2);
-    return (r1);
+    fprintf(Outfile, "\tmovq\t$%d, %s\n", val, reglist[r]);
 }
 
 // Convert an integer value to a boolean value. Jump if
-// it's an IF or WHILE operation
+// it's an IF, WHILE, LOGAND or LOGOR operation
 int cgboolean(int r, int op, int label)
 {
     fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
-    if (op == A_IF || op == A_WHILE)
-        fprintf(Outfile, "\tje\tL%d\n", label);
-    else
+    switch (op)
     {
+    case A_IF:
+    case A_WHILE:
+    case A_LOGAND:
+        fprintf(Outfile, "\tje\tL%d\n", label);
+        break;
+    case A_LOGOR:
+        fprintf(Outfile, "\tjne\tL%d\n", label);
+        break;
+    default:
         fprintf(Outfile, "\tsetnz\t%s\n", breglist[r]);
         fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);
     }
@@ -896,6 +909,7 @@ void cgcopyarg(int r, int argposn)
         fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r],
                 reglist[FIRSTPARAMREG - argposn + 1]);
     }
+    free_register(r);
 }
 
 // Generate a switch jump table and the code to

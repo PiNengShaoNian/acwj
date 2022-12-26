@@ -220,6 +220,15 @@ void dumpAST(struct ASTnode *n, int label, int level)
     case A_ASSLASH:
         fprintf(stdout, "A_ASSLASH\n");
         return;
+    case A_TOBOOL:
+        fprintf(stdout, "A_TOBOOL\n");
+        return;
+    case A_LOGOR:
+        fprintf(stdout, "A_LOGOR\n");
+        return;
+    case A_LOGAND:
+        fprintf(stdout, "A_LOGAND\n");
+        return;
     default:
         fatald("Unknown dumpAST operator", n->op);
     }

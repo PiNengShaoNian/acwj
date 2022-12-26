@@ -7,6 +7,7 @@ static int genWHILE(struct ASTnode *n);
 static int gen_funccall(struct ASTnode *n);
 static int genSWITCH(struct ASTnode *n);
 static int gen_ternary(struct ASTnode *n);
+static int gen_logandor(struct ASTnode *n);
 
 // Given an AST, the register (if any) that holds
 // the previous rvalue, and the AST op of the parent,
@@ -34,6 +35,10 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
         return (gen_funccall(n));
     case A_TERNARY:
         return (gen_ternary(n));
+    case A_LOGOR:
+        return (gen_logandor(n));
+    case A_LOGAND:
+        return (gen_logandor(n));
     case A_GLUE:
         // Do each child statement, and free the
         // registers after each child
@@ -208,10 +213,6 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
         return (cginvert(leftreg));
     case A_LOGNOT:
         return (cglognot(leftreg));
-    case A_LOGOR:
-        return (cglogor(leftreg, rightreg));
-    case A_LOGAND:
-        return (cglogand(leftreg, rightreg));
     case A_TOBOOL:
         // If the parent AST node is an A_IF or A_WHILE, generate
         // a compare followed by a jump. Otherwise, set the register
@@ -416,6 +417,9 @@ static int gen_funccall(struct ASTnode *n)
     int reg;
     int numargs = 0;
 
+    // Save the registers before we copy the arguments
+    spill_all_regs();
+
     // If there is a list of arguments, walk this list
     // from the last argument (right-hand child) to the
     // first
@@ -428,8 +432,6 @@ static int gen_funccall(struct ASTnode *n)
         // Keep the first (highest) number of arguments
         if (numargs == 0)
             numargs = gluetree->a_size;
-
-        genfreeregs(NOREG);
         gluetree = gluetree->left;
     }
 
@@ -478,6 +480,46 @@ static int gen_ternary(struct ASTnode *n)
     cgmove(expreg, reg);
     // Don't free the register holding the result, though!
     genfreeregs(reg);
+    cglabel(Lend);
+    return (reg);
+}
+
+// Generate the code for an
+// A_LOGAND or A_LOGOR operation
+static int gen_logandor(struct ASTnode *n)
+{
+    // Generate two labels
+    int Lfalse = genlabel();
+    int Lend = genlabel();
+    int reg;
+
+    // Generate the code for the left expression
+    // followed by the jump to the false label
+    reg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, 0);
+    cgboolean(reg, n->op, Lfalse);
+    genfreeregs(NOREG);
+
+    // Generate the code for the right expression
+    // followed by the jump to the false label
+    reg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, 0);
+    cgboolean(reg, n->op, Lfalse);
+    genfreeregs(reg);
+
+    // We didn't jump so set the right boolean value
+    if (n->op == A_LOGAND)
+    {
+        cgloadboolean(reg, 1);
+        cgjump(Lend);
+        cglabel(Lfalse);
+        cgloadboolean(reg, 0);
+    }
+    else
+    {
+        cgloadboolean(reg, 0);
+        cgjump(Lend);
+        cglabel(Lfalse);
+        cgloadboolean(reg, 1);
+    }
     cglabel(Lend);
     return (reg);
 }
