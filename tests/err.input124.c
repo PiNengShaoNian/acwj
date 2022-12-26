@@ -1,1 +1,1 @@
-Cannot ++ on rvalue:ary on line 6 of input124.c
+Cannot ++ on rvalue on line 6 of input124.c

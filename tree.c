@@ -2,7 +2,9 @@
 #include "data.h"
 #include "decl.h"
 
+// Build and return a generic AST node
 struct ASTnode *mkastnode(int op, int type,
+                          struct symtable *ctype,
                           struct ASTnode *left,
                           struct ASTnode *mid,
                           struct ASTnode *right,
@@ -18,6 +20,7 @@ struct ASTnode *mkastnode(int op, int type,
     // Copy in the field values and return it
     n->op = op;
     n->type = type;
+    n->ctype = ctype;
     n->left = left;
     n->mid = mid;
     n->right = right;
@@ -28,16 +31,19 @@ struct ASTnode *mkastnode(int op, int type,
 
 // Make an AST leaf node
 struct ASTnode *mkastleaf(int op, int type,
+                          struct symtable *ctype,
                           struct symtable *sym, int intvalue)
 {
-    return (mkastnode(op, type, NULL, NULL, NULL, sym, intvalue));
+    return (mkastnode(op, type, ctype, NULL, NULL, NULL, sym, intvalue));
 }
 
 // Make a unary AST node: only one child
-struct ASTnode *mkastunary(int op, int type, struct ASTnode *left,
+struct ASTnode *mkastunary(int op, int type,
+                           struct symtable *ctype,
+                           struct ASTnode *left,
                            struct symtable *sym, int intvalue)
 {
-    return (mkastnode(op, type, left, NULL, NULL, sym, intvalue));
+    return (mkastnode(op, type, ctype, left, NULL, NULL, sym, intvalue));
 }
 
 // Generate and return a new label number

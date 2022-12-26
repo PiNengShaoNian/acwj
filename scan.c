@@ -31,9 +31,10 @@ static int next(void)
 
     c = fgetc(Infile); // Read from input file
 
-    while (c == '#')
-    {                 // We've hit a pre-processor statement
-        scan(&Token); // Get the line number into l
+    while (Linestart && c == '#')
+    {                  // We've hit a pre-processor statement
+        Linestart = 0; // No longer at the start of the line
+        scan(&Token);  // Get the line number into l
         if (Token.token != T_INTLIT)
             fatals("Expecting pre-processor line number, got:", Text);
         l = Token.intvalue;
@@ -52,10 +53,15 @@ static int next(void)
         while ((c = fgetc(Infile)) != '\n')
             ;              // Skip to the end of the line
         c = fgetc(Infile); // and get the next character
+        Linestart = 1;     // Now back at the start of the line
     }
 
+    Linestart = 0; // No longer at the start of the line
     if ('\n' == c)
-        Line++; // Increment line count
+    {
+        Line++;        // Increment line count
+        Linestart = 1; // Now back at the start of the line
+    }
     return (c);
 }
 

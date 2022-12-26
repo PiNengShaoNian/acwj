@@ -49,7 +49,8 @@ int typesize(int type, struct symtable *ctype)
 // if no changes occurred, a modified tree, or NULL if the
 // tree is not compatible with the given type.
 // If this will be part of a binary operation, the AST op is not zero.
-struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op)
+struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
+                            struct symtable *rctype, int op)
 {
     int ltype;
     int lsize, rsize;
@@ -79,7 +80,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op)
 
         // Widen to the right
         if (rsize > lsize)
-            return (mkastunary(A_WIDEN, rtype, tree, NULL, 0));
+            return (mkastunary(A_WIDEN, rtype, NULL, tree, NULL, 0));
     }
 
     // For pointers on the left
@@ -104,7 +105,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op)
         {
             rsize = genprimsize(value_at(rtype));
             if (rsize > 1)
-                return (mkastunary(A_SCALE, rtype, tree, NULL, rsize));
+                return (mkastunary(A_SCALE, rtype, rctype, tree, NULL, rsize));
             else
                 return (tree); // Size 1, no need to scale
         }

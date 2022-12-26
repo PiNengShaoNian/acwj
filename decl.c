@@ -117,13 +117,12 @@ int parse_stars(int type)
 }
 
 // Parse a type which appears inside a cast
-int parse_cast(void)
+int parse_cast(struct symtable **ctype)
 {
-    int type, class;
-    struct symtable *ctype;
+    int type, class = 0;
 
     // Get the type inside the parentheses
-    type = parse_stars(parse_type(&ctype, &class));
+    type = parse_stars(parse_type(ctype, &class));
 
     // Do some error checking. I'm sure more can be done
     if (type == P_STRUCT || type == P_UNION || type == P_VOID)
@@ -222,7 +221,7 @@ static struct symtable *scalar_declaration(char *varname, int type,
         if (class == C_LOCAL)
         {
             // Make an A_IDENT AST node with the variable
-            varnode = mkastleaf(A_IDENT, sym->type, sym, 0);
+            varnode = mkastleaf(A_IDENT, sym->type, sym->ctype, sym, 0);
 
             // Get the expression for the assignment, make into a rvalue
             exprnode = binexpr(0);
@@ -231,7 +230,7 @@ static struct symtable *scalar_declaration(char *varname, int type,
                 fatal("Incompatible expression in assignment");
 
             // Make an assignment AST tree
-            *tree = mkastnode(A_ASSIGN, exprnode->type, exprnode,
+            *tree = mkastnode(A_ASSIGN, exprnode->type, exprnode->ctype, exprnode,
                               NULL, varnode, NULL, 0);
         }
     }
@@ -494,7 +493,7 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
         if (*gluetree == NULL)
             *gluetree = tree;
         else
-            *gluetree = mkastnode(A_GLUE, P_NONE, *gluetree, NULL, tree, NULL, 0);
+            *gluetree = mkastnode(A_GLUE, P_NONE, NULL, *gluetree, NULL, tree, NULL, 0);
 
         // We are at the end of the list, leave
         if (Token.token == et1 || Token.token == et2)
@@ -603,7 +602,7 @@ static struct symtable *function_declaration(char *funcname, int type, struct sy
 
     // Build the A_FUNCTION node which has the function's symbol pointer
     // and the compound statement sub-tree
-    tree = mkastunary(A_FUNCTION, type, tree, oldfuncsym, endlabel);
+    tree = mkastunary(A_FUNCTION, type, ctype, tree, oldfuncsym, endlabel);
 
     // Do optimisations on the AST tree
     tree = optimise(tree);

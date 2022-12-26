@@ -5,6 +5,7 @@
 #define TEXTLEN 512
 
 extern_ int Line;
+extern_ int Linestart;		     	// True if at start of a line
 extern_ int Putback;
 extern_ FILE *Infile;
 extern_ FILE *Outfile;

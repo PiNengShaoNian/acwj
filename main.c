@@ -69,6 +69,7 @@ static char *do_compile(char *filename)
     }
 
     Line = 1; // Reset the scanner
+    Linestart = 1;
     Putback = '\n';
     clear_symtable(); // Clear the symbol table
     if (O_verbose)

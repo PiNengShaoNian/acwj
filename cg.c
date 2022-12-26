@@ -608,15 +608,17 @@ int cgshlconst(int r, int val)
 // Store through a dereferenced pointer
 int cgstorderef(int r1, int r2, int type)
 {
-    switch (type)
+    // Get the size of the type
+    int size = cgprimsize(type);
+
+    switch (size)
     {
-    case P_CHAR:
+    case 1:
         fprintf(Outfile, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
         break;
-    case P_INT:
-        fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
-        break;
-    case P_LONG:
+    case 2:
+    case 4:
+    case 8:
         fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
         break;
     default:
