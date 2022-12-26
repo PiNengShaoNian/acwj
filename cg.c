@@ -532,28 +532,32 @@ int cgcall(struct symtable *sym, int numargs)
 // Generate code to return a value from a function
 void cgreturn(int reg, struct symtable *sym)
 {
-    // Deal with pointers here as we can't put them in
-    // the switch statement
-    if (ptrtype(sym->type))
-        fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
-    else
+    if (reg != NOREG)
     {
-        // Generate code depending on the function's type
-        switch (sym->type)
-        {
-        case P_CHAR:
-            fprintf(Outfile, "\tmovzbl\t%s, %%eax\n", breglist[reg]);
-            break;
-        case P_INT:
-            fprintf(Outfile, "\tmovl\t%s, %%eax\n", dreglist[reg]);
-            break;
-        case P_LONG:
+        // Deal with pointers here as we can't put them in
+        // the switch statement
+        if (ptrtype(sym->type))
             fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
-            break;
-        default:
-            fatald("Bad function type in cgreturn:", sym->type);
+        else
+        {
+            // Generate code depending on the function's type
+            switch (sym->type)
+            {
+            case P_CHAR:
+                fprintf(Outfile, "\tmovzbl\t%s, %%eax\n", breglist[reg]);
+                break;
+            case P_INT:
+                fprintf(Outfile, "\tmovl\t%s, %%eax\n", dreglist[reg]);
+                break;
+            case P_LONG:
+                fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
+                break;
+            default:
+                fatald("Bad function type in cgreturn:", sym->type);
+            }
         }
     }
+
     cgjump(sym->st_endlabel);
 }
 
@@ -628,14 +632,19 @@ int cgstorderef(int r1, int r2, int type)
 }
 
 // Generate a global string and its start label
-void cgglobstr(int l, char *strvalue)
+void cgglobstr(int l, char *strvalue, int append)
 {
     char *cptr;
-    cglabel(l);
+    if (!append)
+        cglabel(l);
     for (cptr = strvalue; *cptr; cptr++)
     {
         fprintf(Outfile, "\t.byte\t%d\n", *cptr);
     }
+}
+
+void cgglobstrend(void)
+{
     fprintf(Outfile, "\t.byte\t0\n");
 }
 

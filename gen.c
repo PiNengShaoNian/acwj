@@ -15,7 +15,11 @@ static int gen_ternary(struct ASTnode *n);
 int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
            int loopendlabel, int parentASTop)
 {
-    int leftreg, rightreg;
+    int leftreg = NOREG, rightreg = NOREG;
+
+    // Empty tree, do nothing
+    if (n == NULL)
+        return (NOREG);
 
     // We now have specific AST node handing at the top
     switch (n->op)
@@ -161,7 +165,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
         return cgwiden(leftreg, n->left->type, n->type);
     case A_RETURN:
         cgreturn(leftreg, Functionid);
-        return NOREG;
+        return (NOREG);
     case A_ADDR:
         return (cgaddress(n->sym));
     case A_SCALE:
@@ -390,11 +394,16 @@ int genprimsize(int type)
     return (cgprimsize(type));
 }
 
-int genglobstr(char *strvalue)
+int genglobstr(char *strvalue, int append)
 {
     int l = genlabel();
-    cgglobstr(l, strvalue);
+    cgglobstr(l, strvalue, append);
     return (l);
+}
+
+void genglobstrend(void)
+{
+    cgglobstrend();
 }
 
 // Generate the code to copy the arguments of a

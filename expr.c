@@ -258,8 +258,21 @@ static struct ASTnode *primary(void)
         return (mkastleaf(A_INTLIT, P_INT, NULL, NULL, size));
     case T_STRLIT:
         // For a STRLIT token, generate the assembly for it.
-        // Then make a leaf AST node for it. id is the string's label.
-        id = genglobstr(Text);
+        id = genglobstr(Text, 0);
+
+        // For successive STRLIT tokens, append their contents
+        // to this one
+        while (1)
+        {
+            scan(&Peektoken);
+            if (Peektoken.token != T_STRLIT)
+                break;
+            genglobstr(Text, 1);
+            scan(&Token); // To skip it properly
+        }
+
+        // Now make a leaf AST node for it. id is the string's label.
+        genglobstrend();
         n = mkastleaf(A_STRLIT, pointer_to(P_CHAR), NULL, NULL, id);
         break;
     case T_INTLIT:
