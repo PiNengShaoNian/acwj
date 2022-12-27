@@ -312,6 +312,7 @@ static struct symtable *array_declaration(char *varname, int type,
     // We treat the array as a pointer to its elements' type
     switch (class)
     {
+    case C_STATIC:
     case C_EXTERN:
     case C_GLOBAL:
         // See if this variable is new or already exists
@@ -320,8 +321,11 @@ static struct symtable *array_declaration(char *varname, int type,
             sym = addglob(varname, pointer_to(type), ctype, S_ARRAY, class,
                           0, 0);
         break;
+    case C_LOCAL:
+        sym = addlocl(varname, pointer_to(type), ctype, S_ARRAY, 0);
+        break;
     default:
-        fatal("For now, declaration of non-global arrays is not implemented");
+        fatal("Declaration of array parameters is not implemented");
     }
 
     // Array initialisation
@@ -380,6 +384,11 @@ static struct symtable *array_declaration(char *varname, int type,
             nelems = i;
         sym->initlist = initlist;
     }
+
+    // Set the size of the array and the number of elements
+    // Only externs can have no elements
+    if (class != C_EXTERN && nelems < 0)
+        fatals("Array must have non-zero elements", sym->name);
 
     // Set the size of the array and the number of elements
     sym->nelems = nelems;
@@ -489,7 +498,10 @@ static struct symtable *symbol_declaration(int type, struct symtable *ctype,
 
     // Add the array or scalar variable to the symbol table
     if (Token.token == T_LBRACKET)
+    {
         sym = array_declaration(varname, type, ctype, class);
+        *tree = NULL; // Local array are not initialised
+    }
     else
         sym = scalar_declaration(varname, type, ctype, class, tree);
 

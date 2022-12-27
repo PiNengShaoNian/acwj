@@ -66,11 +66,11 @@ static int localOffset;
 static int stackOffset;
 
 // Get the position of the next local variable.
-int newlocaloffset(int type)
+int newlocaloffset(int size)
 {
     // Decrement the offset by a minimum of 4 bytes
     // and allocate on the stack
-    localOffset += (cgprimsize(type) > 4) ? cgprimsize(type) : 4;
+    localOffset += (size > 4) ? size : 4;
     return (-localOffset);
 }
 
@@ -253,7 +253,7 @@ void cgfuncpreamble(struct symtable *sym)
         }
         else
         {
-            param->st_posn = newlocaloffset(param->type);
+            param->st_posn = newlocaloffset(param->size);
             cgstorlocal(paramReg--, param);
         }
     }
@@ -262,7 +262,7 @@ void cgfuncpreamble(struct symtable *sym)
     // already on the stack. If only a local, make a stack position.
     for (locvar = Loclhead; locvar != NULL; locvar = locvar->next)
     {
-        locvar->st_posn = newlocaloffset(locvar->type);
+        locvar->st_posn = newlocaloffset(locvar->size);
     }
 
     // Align the stack pointer to be a multiple of 16
@@ -675,8 +675,9 @@ int cgstorderef(int r1, int r2, int type)
     case 1:
         fprintf(Outfile, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
         break;
-    case 2:
     case 4:
+        fprintf(Outfile, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);
+        break;
     case 8:
         fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
         break;
