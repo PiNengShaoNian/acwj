@@ -3,7 +3,7 @@
 INCDIR=/tmp/include
 BINDIR=/tmp
 
-HSRCS= data.h decl.h defs.h
+HSRCS= data.h decl.h defs.h incdir.h
 SRCS= cg.c decl.c expr.c gen.c main.c misc.c \
 	opt.c scan.c stmt.c sym.c tree.c types.c
 
@@ -11,11 +11,14 @@ ARMSRCS= cg.c decl.c expr.c gen.c main.c misc.c \
 	opt.c scan.c stmt.c sym.c tree.c types.c
 
 cwj: $(SRCS) $(HSRCS)
-	cc -o cwj -g -Wall -DINCDIR=\"$(INCDIR)\" $(SRCS)
+	cc -o cwj -g -Wall $(SRCS)
 
 cwjarm: $(ARMSRCS) $(HSRCS)
 	cc -o cwjarm -g -Wall $(ARMSRCS)
 	cp cwjarm cwj
+
+incdir.h:
+	echo "#define INCDIR \"$(INCDIR)\"" > incdir.h
 
 install: cwj
 	mkdir -p $(INCDIR)
@@ -24,7 +27,7 @@ install: cwj
 	chmod +x $(BINDIR)/cwj
 
 clean:
-	rm -f cwj cwjarm *.o *.s out a.out
+	rm -f cwj cwjarm *.o *.s out a.out incdir.h
 
 test: install tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)

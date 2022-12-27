@@ -107,7 +107,8 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
     }
 
     // We can scale only on A_ADD or A_SUBTRACT operation
-    if (op == A_ADD || op == A_SUBTRACT)
+    if (op == A_ADD || op == A_SUBTRACT ||
+        op == A_ASPLUS || op == A_ASMINUS)
     {
         // Left is int type, right is pointer and the size
         // of the original type is >1: scale the left

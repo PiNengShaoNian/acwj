@@ -26,7 +26,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
     switch (n->op)
     {
     case A_IF:
-        return genIFAST(n, looptoplabel, loopendlabel);
+        return (genIFAST(n, looptoplabel, loopendlabel));
     case A_WHILE:
         return (genWHILE(n));
     case A_SWITCH:
@@ -48,13 +48,13 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
         if (n->right != NULL)
             genAST(n->right, iflabel, looptoplabel, loopendlabel, n->op);
         genfreeregs(NOREG);
-        return NOREG;
+        return (NOREG);
     case A_FUNCTION:
         // Generate the function's preamble before the code
         cgfuncpreamble(n->sym);
         genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
         cgfuncpostamble(n->sym);
-        return NOREG;
+        return (NOREG);
     }
 
     // General AST node handing below
@@ -108,7 +108,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
         // or we are being dereferenced
         if (n->rvalue || parentASTop == A_DEREF)
         {
-            if (n->sym->class == C_GLOBAL || n->sym->class == C_STATIC)
+            if (n->sym->class == C_GLOBAL || n->sym->class == C_STATIC || n->sym->class == C_EXTERN)
                 return (cgloadglob(n->sym, n->op));
             else
                 return (cgloadlocal(n->sym, n->op));
@@ -358,7 +358,7 @@ static int genSWITCH(struct ASTnode *n)
     // Output the code to calculate the switch condition
     reg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, 0);
     cgjump(Ljumptop);
-    genfreeregs(NOREG);
+    genfreeregs(reg);
 
     // Walk the right child linked list to
     // generate the code for each case

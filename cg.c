@@ -107,6 +107,7 @@ static void popreg(int r)
 void freeall_registers(int keepreg)
 {
     int i;
+    fprintf(Outfile, "# freeing all registers\n");
     for (i = 0; i < NUMFREEREGS; i++)
         if (i != keepreg)
             freereg[i] = 1;
@@ -130,6 +131,7 @@ int alloc_register(void)
         if (freereg[reg])
         {
             freereg[reg] = 0;
+            fprintf(Outfile, "# allocated register %s\n", reglist[reg]);
             return (reg);
         }
     }
@@ -147,7 +149,10 @@ int alloc_register(void)
 static void free_register(int reg)
 {
     if (freereg[reg] != 0)
+    {
+        fprintf(Outfile, "# error trying to free register %s\n", reglist[reg]);
         fatald("Error trying to free register", reg);
+    }
 
     // If this was a spilled register, get it back
     if (spillreg > 0)
@@ -159,6 +164,7 @@ static void free_register(int reg)
     }
     else
     {
+        fprintf(Outfile, "# freeing reg %s\n", reglist[reg]);
         freereg[reg] = 1;
     }
 }
@@ -276,9 +282,10 @@ void cgfuncpostamble(struct symtable *sym)
 {
     cglabel(sym->st_endlabel);
     fprintf(Outfile, "\taddq\t$%d,%%rsp\n", stackOffset);
-    fputs("\tpopq %rbp\n"
+    fputs("\tpopq	%rbp\n"
           "\tret\n",
           Outfile);
+    freeall_registers(NOREG);
 }
 
 // Load an integer literal value into a register
@@ -479,13 +486,6 @@ int cgdiv(int r1, int r2)
     fprintf(Outfile, "\tmovq\t%%rax,%s\n", reglist[r1]);
     free_register(r2);
     return (r1);
-}
-
-void cgprintint(int r)
-{
-    fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]);
-    fprintf(Outfile, "\tcall\tprintint\n");
-    free_register(r);
 }
 
 // List of comparison instructions,

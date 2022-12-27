@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include "incdir.h"
 
 // Commands and default filenames
 #define AOUT "a.out"
