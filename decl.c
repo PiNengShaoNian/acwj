@@ -555,6 +555,8 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
         // Otherwise, we need a comma as separator
         comma();
     }
+
+    return (0); // Keep -Wall happy
 }
 
 // Parse one or more global declarations, either
@@ -772,7 +774,7 @@ static struct symtable *composite_declaration(int type)
 static void enum_declaration(void)
 {
     struct symtable *etype = NULL;
-    char *name;
+    char *name = NULL;
     int intval = 0;
 
     // Skip the enum keyword;

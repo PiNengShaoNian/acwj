@@ -31,7 +31,7 @@ struct ASTnode *while_statement(void)
     Looplevel--;
 
     // Build ans return the AST for this statement
-    return mkastnode(A_WHILE, P_NONE, NULL, condAST, NULL, bodyAST, NULL, 0);
+    return (mkastnode(A_WHILE, P_NONE, NULL, condAST, NULL, bodyAST, NULL, 0));
 }
 
 // Parse an IF statement including
@@ -116,7 +116,7 @@ static struct ASTnode *for_statement(void)
     tree = mkastnode(A_WHILE, P_NONE, NULL, condAST, NULL, tree, NULL, 0);
 
     // And glue the preop tree to the A_WHILE tree
-    return mkastnode(A_GLUE, P_NONE, NULL, preopAST, NULL, tree, NULL, 0);
+    return (mkastnode(A_GLUE, P_NONE, NULL, preopAST, NULL, tree, NULL, 0));
 }
 
 // Parse a return statement and return its AST
@@ -158,7 +158,7 @@ static struct ASTnode *return_statement(void)
 
     // Get the ';'
     semi();
-    return tree;
+    return (tree);
 }
 
 // break_statement: 'break' ;

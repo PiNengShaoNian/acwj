@@ -15,7 +15,7 @@ struct ASTnode *mkastunary(int op, int type,
                            struct symtable *ctype,
                            struct ASTnode *left,
                            struct symtable *sym, int intvalue);
-void dumpAST(struct ASTnode *n, int label, int parentASTop);
+void dumpAST(struct ASTnode *n, int label, int level);
 
 // gen.c
 int genlabel(void);
@@ -43,13 +43,12 @@ void cgpostamble();
 void cgfuncpreamble(struct symtable *sym);
 void cgfuncpostamble(struct symtable *sym);
 int cgloadint(int value, int type);
-int cgloadglob(struct symtable *sym, int op);
-int cgloadlocal(struct symtable *sym, int op);
+int cgloadvar(struct symtable *sym, int op);
 int cgloadglobstr(int label);
 int cgadd(int r1, int r2);
 int cgsub(int r1, int r2);
 int cgmul(int r1, int r2);
-int cgdiv(int r1, int r2);
+int cgdivmod(int r1, int r2, int op);
 int cgshlconst(int r, int val);
 int cgcall(struct symtable *sym, int numargs);
 void cgcopyarg(int r, int argposn);
@@ -84,7 +83,7 @@ void cgmove(int r1, int r2);
 
 // expr.c
 struct ASTnode *expression_list(int endtoken);
-struct ASTnode *binexpr(int rbp);
+struct ASTnode *binexpr(int ptp);
 
 // stmt.c
 struct ASTnode *compound_statement(int inswitch);
@@ -107,9 +106,7 @@ void fatalc(char *s, int c);
 void appendsym(struct symtable **head, struct symtable **tail,
                struct symtable *node);
 struct symtable *newsym(char *name, int type, struct symtable *ctype, int stype, int class,
-                        int size, int posn);
-struct symtable *newsym(char *name, int type, struct symtable *ctype,
-                        int stype, int class, int size, int posn);
+                        int nelems, int posn);
 struct symtable *addglob(char *name, int type, struct symtable *ctype, int stype, int class, int nelems, int posn);
 struct symtable *addlocl(char *name, int type, struct symtable *ctype, int stype, int size);
 struct symtable *addparm(char *name, int type, struct symtable *ctype, int stype, int size);

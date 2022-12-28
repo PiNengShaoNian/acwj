@@ -68,13 +68,15 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
     switch (n->op)
     {
     case A_ADD:
-        return cgadd(leftreg, rightreg);
+        return (cgadd(leftreg, rightreg));
     case A_SUBTRACT:
-        return cgsub(leftreg, rightreg);
+        return (cgsub(leftreg, rightreg));
     case A_MULTIPLY:
-        return cgmul(leftreg, rightreg);
+        return (cgmul(leftreg, rightreg));
     case A_DIVIDE:
-        return cgdiv(leftreg, rightreg);
+        return (cgdivmod(leftreg, rightreg, A_DIVIDE));
+    case A_MOD:
+        return (cgdivmod(leftreg, rightreg, A_MOD));
     case A_AND:
         return (cgand(leftreg, rightreg));
     case A_OR:
@@ -96,9 +98,9 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
         // set one to 1 or 0 based on the comparison.
         if (parentASTop == A_IF || parentASTop == A_WHILE ||
             parentASTop == A_TERNARY)
-            return cgcompare_and_jump(n->op, leftreg, rightreg, iflabel);
+            return (cgcompare_and_jump(n->op, leftreg, rightreg, iflabel));
         else
-            return cgcompare_and_set(n->op, leftreg, rightreg);
+            return (cgcompare_and_set(n->op, leftreg, rightreg));
     case A_STRLIT:
         return (cgloadglobstr(n->a_intvalue));
     case A_INTLIT:
@@ -108,10 +110,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
         // or we are being dereferenced
         if (n->rvalue || parentASTop == A_DEREF)
         {
-            if (n->sym->class == C_GLOBAL || n->sym->class == C_STATIC || n->sym->class == C_EXTERN)
-                return (cgloadglob(n->sym, n->op));
-            else
-                return (cgloadlocal(n->sym, n->op));
+            return (cgloadvar(n->sym, n->op));
         }
         else
             return (NOREG);
@@ -119,6 +118,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
     case A_ASMINUS:
     case A_ASSTAR:
     case A_ASSLASH:
+    case A_ASMOD:
     case A_ASSIGN:
         // For the '+=' and friends operators, generate suitable code
         // and get the register with the result. Then take the left child,
@@ -138,7 +138,11 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
             n->right = n->left;
             break;
         case A_ASSLASH:
-            leftreg = cgdiv(leftreg, rightreg);
+            leftreg = cgdivmod(leftreg, rightreg, A_DIVIDE);
+            n->right = n->left;
+            break;
+        case A_ASMOD:
+            leftreg = cgdivmod(leftreg, rightreg, A_MOD);
             n->right = n->left;
             break;
         }
@@ -167,7 +171,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
             return (leftreg);
     case A_WIDEN:
         // Widen the child's type to the parent's type
-        return cgwiden(leftreg, n->left->type, n->type);
+        return (cgwiden(leftreg, n->left->type, n->type));
     case A_RETURN:
         cgreturn(leftreg, Functionid);
         return (NOREG);
@@ -194,19 +198,12 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
     case A_POSTDEC:
         // Load the variable's value into a register,
         // and post increment/decrement it
-        if (n->sym->class == C_GLOBAL || n->sym->class == C_STATIC)
-            return (cgloadglob(n->sym, n->op));
-        else
-            return (cgloadlocal(n->sym, n->op));
+        return (cgloadvar(n->sym, n->op));
     case A_PREINC:
     case A_PREDEC:
         // Load and increment the variable's value into a register
         // and pre increment/decrement it
-        if (n->left->sym->class == C_GLOBAL ||
-            n->left->sym->class == C_STATIC)
-            return (cgloadglob(n->left->sym, n->op));
-        else
-            return (cgloadlocal(n->left->sym, n->op));
+        return (cgloadvar(n->left->sym, n->op));
     case A_NEGATE:
         return (cgnegate(leftreg));
     case A_INVERT:
@@ -228,8 +225,9 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
         return (leftreg);
     default:
         fatald("Unknown AST operator", n->op);
-        return (0);
     }
+
+    return (0);
 }
 
 void genpreamble()
@@ -253,10 +251,10 @@ void genglobsym(struct symtable *node)
 }
 
 // Generate and return a new label number
+static int labelid = 1;
 int genlabel(void)
 {
-    static int id = 1;
-    return (id++);
+    return (labelid++);
 }
 
 // Generate the code for an IF statement
@@ -299,7 +297,7 @@ static int genIFAST(struct ASTnode *n, int looptoplabel, int loopendlabel)
     // end label
     if (n->right)
     {
-        genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+        genAST(n->right, NOLABEL, NOLABEL, loopendlabel, n->op);
         genfreeregs(NOREG);
         cglabel(Lend);
     }
@@ -332,7 +330,7 @@ static int genWHILE(struct ASTnode *n)
     // and the end label
     cgjump(Lstart);
     cglabel(Lend);
-    return NOREG;
+    return (NOREG);
 }
 
 // Generate the code for a SWITCH statement

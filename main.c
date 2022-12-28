@@ -120,7 +120,7 @@ char *do_assemble(char *filename)
 
 // Given a list of object files and an output filename,
 // link all of the object filenames together.
-void do_link(char *outfilename, char *objlist[])
+void do_link(char *outfilename, char **objlist)
 {
     int cnt, size = TEXTLEN;
     char cmd[TEXTLEN], *cptr;
@@ -167,12 +167,12 @@ static void usage(char *prog)
 // if we don't have an argument. Open up the input
 // file and call scanfile() to scan the tokens in it.
 #define MAXOBJ 100
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
     char *outfilename = AOUT;
     char *asmfile, *objfile;
     char *objlist[MAXOBJ];
-    int i, objcnt = 0;
+    int i, j, objcnt = 0;
 
     // Initialise our variables
     O_dumpAST = 0;
@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
             break;
 
         // For each option in this argument
-        for (int j = 1; (*argv[i] == '-') && argv[i][j]; j++)
+        for (j = 1; (*argv[i] == '-') && argv[i][j]; j++)
         {
             switch (argv[i][j])
             {

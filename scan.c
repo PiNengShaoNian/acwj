@@ -4,10 +4,10 @@
 
 // List of token strings, for debugging purposes
 char *Tstring[] = {
-    "EOF", "=", "+=", "-=", "*=", "/=",
+    "EOF", "=", "+=", "-=", "*=", "/=", "%=",
     "?", "||", "&&", "|", "^", "&",
     "==", "!=", ",", ">", "<=", ">=", "<<", ">>",
-    "+", "-", "*", "/", "++", "--", "~", "!",
+    "+", "-", "*", "/", "%", "++", "--", "~", "!",
     "void", "char", "int", "long",
     "if", "else", "while", "for", "return",
     "struct", "union", "enum", "typedef",
@@ -84,17 +84,18 @@ static int skip(void)
         c = next();
     }
 
-    return c;
+    return (c);
 }
 
 // Return the position of character c
 // in string s, or -1 if c not found
 static int chrpos(char *s, int c)
 {
-    char *p;
-
-    p = strchr(s, c);
-    return (p ? p - s : -1);
+    int i;
+    for (i = 0; s[i] != '\0'; i++)
+        if (s[i] == (char)c)
+            return (i);
+    return (-1);
 }
 
 // Given a word from the input, return the matching
@@ -113,7 +114,7 @@ static int keyword(char *s)
         if (!strcmp(s, "case"))
             return (T_CASE);
         if (!strcmp(s, "char"))
-            return T_CHAR;
+            return (T_CHAR);
         if (!strcmp(s, "continue"))
             return (T_CONTINUE);
         break;
@@ -123,7 +124,7 @@ static int keyword(char *s)
         break;
     case 'e':
         if (!strcmp(s, "else"))
-            return T_ELSE;
+            return (T_ELSE);
         if (!strcmp(s, "enum"))
             return (T_ENUM);
         if (!strcmp(s, "extern"))
@@ -131,28 +132,28 @@ static int keyword(char *s)
         break;
     case 'f':
         if (!strcmp(s, "for"))
-            return T_FOR;
+            return (T_FOR);
     case 'i':
         if (!strcmp(s, "int"))
-            return T_INT;
+            return (T_INT);
         if (!strcmp(s, "if"))
-            return T_IF;
+            return (T_IF);
         break;
     case 'w':
         if (!strcmp(s, "while"))
-            return T_WHILE;
+            return (T_WHILE);
         break;
 
     case 'v':
         if (!strcmp(s, "void"))
-            return T_VOID;
+            return (T_VOID);
         break;
     case 'l':
         if (!strcmp(s, "long"))
-            return T_LONG;
+            return (T_LONG);
     case 'r':
         if (!strcmp(s, "return"))
-            return T_RETURN;
+            return (T_RETURN);
         break;
     case 's':
         if (!strcmp(s, "struct"))
@@ -174,7 +175,7 @@ static int keyword(char *s)
         break;
     }
 
-    return 0;
+    return (0);
 }
 
 // Scan an identifier from the input file and
@@ -195,7 +196,7 @@ static int scanident(int c, char *buf, int lim)
         }
         else if (i < lim - 1)
         {
-            buf[i++] = c;
+            buf[i++] = (char)c;
         }
         c = next();
     }
@@ -204,7 +205,7 @@ static int scanident(int c, char *buf, int lim)
     // NUL-terminate the buf[] and return the length
     putback(c);
     buf[i] = '\0';
-    return i;
+    return (i);
 }
 
 // Scan and return an integer literal
@@ -266,7 +267,7 @@ static int hexchar(void)
         fatal("missing digits after '\\x'");
     if (n > 255)
         fatal("value out of range after '\\x'");
-    return n;
+    return (n);
 }
 
 // Return the next character from a character
@@ -350,7 +351,7 @@ static int scanstr(char *buf)
             return (i);
         }
 
-        buf[i] = c;
+        buf[i] = (char)c;
     }
 
     // Ran out of buf[] space
@@ -383,7 +384,7 @@ int scan(struct token *t)
     {
     case EOF:
         t->token = T_EOF;
-        return 0;
+        return (0);
     case '+':
         if ((c = next()) == '+')
         {
@@ -444,6 +445,17 @@ int scan(struct token *t)
         {
             putback(c);
             t->token = T_SLASH;
+        }
+        break;
+    case '%':
+        if ((c = next()) == '=')
+        {
+            t->token = T_ASMOD;
+        }
+        else
+        {
+            putback(c);
+            t->token = T_MOD;
         }
         break;
     case ';':

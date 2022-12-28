@@ -32,6 +32,7 @@ enum
     T_ASMINUS,
     T_ASSTAR,
     T_ASSLASH,
+    T_ASMOD,
     T_QUESTION,
     T_LOGOR,
     T_LOGAND,
@@ -50,6 +51,7 @@ enum
     T_MINUS,
     T_STAR,
     T_SLASH,
+    T_MOD,
 
     // Other operators
     T_INC,
@@ -108,6 +110,7 @@ enum
     A_ASMINUS,
     A_ASSTAR,
     A_ASSLASH,
+    A_ASMOD,
     A_TERNARY,
     A_LOGOR,
     A_LOGAND,
@@ -126,6 +129,7 @@ enum
     A_SUBTRACT,
     A_MULTIPLY,
     A_DIVIDE,
+    A_MOD,
     A_INTLIT,
     A_STRLIT,
     A_IDENT,
@@ -169,22 +173,6 @@ enum
     P_UNION = 96
 };
 
-// Abstract Syntax Tree structure
-struct ASTnode
-{
-    int op;                 // "Operation" to be performed on this tree
-    int type;               // Type of any expression this tree generates
-    struct symtable *ctype; // If struct/union, ptr to that type
-    int rvalue;           // True if the node is an rvalue
-    struct ASTnode *left; // Left, middle and right child trees
-    struct ASTnode *mid;
-    struct ASTnode *right;
-    struct symtable *sym; // For any AST nodes, the pointer to
-                          // the symbol in the symbol table
-#define a_intvalue a_size // For A_INTLIT, the integer value
-    int a_size;           // For A_SCALE, the size to scale by
-};
-
 // Structural types
 enum
 {
@@ -225,7 +213,23 @@ struct symtable
     int *initlist;           // List of initial values
     struct symtable *next;   // Next symbol in one list
     struct symtable *member; // First member of a function, struct,
-};                           // union or enum
+};
+
+// Abstract Syntax Tree structure
+struct ASTnode
+{
+    int op;                 // "Operation" to be performed on this tree
+    int type;               // Type of any expression this tree generates
+    struct symtable *ctype; // If struct/union, ptr to that type
+    int rvalue;             // True if the node is an rvalue
+    struct ASTnode *left;   // Left, middle and right child trees
+    struct ASTnode *mid;
+    struct ASTnode *right;
+    struct symtable *sym; // For any AST nodes, the pointer to
+                          // the symbol in the symbol table
+#define a_intvalue a_size // For A_INTLIT, the integer value
+    int a_size;           // For A_SCALE, the size to scale by
+};                        // union or enum
 
 #define NOREG -1  // Use NOREG when the AST generation
                   // functions have no register to return

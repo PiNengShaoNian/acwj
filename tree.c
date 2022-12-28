@@ -26,7 +26,7 @@ struct ASTnode *mkastnode(int op, int type,
     n->right = right;
     n->sym = sym;
     n->a_intvalue = intvalue;
-    return n;
+    return (n);
 }
 
 // Make an AST leaf node
@@ -48,23 +48,23 @@ struct ASTnode *mkastunary(int op, int type,
 
 // Generate and return a new label number
 // just for AST dumping purposes
+static int dumpid = 1;
 static int gendumplabel(void)
 {
-    static int id = 1;
-    return (id++);
+    return (dumpid++);
 }
 
 // Given an AST tree, print it out and follow the
 // traversal of the tree that genAST() follows
 void dumpAST(struct ASTnode *n, int label, int level)
 {
-    int Lfalse, Lstart, Lend;
+    int Lfalse, Lstart, Lend, i;
 
     switch (n->op)
     {
     case A_IF:
         Lfalse = gendumplabel();
-        for (int i = 0; i < level; i++)
+        for (i = 0; i < level; i++)
             fprintf(stdout, " ");
         fprintf(stdout, "A_IF");
         if (n->right)
@@ -80,7 +80,7 @@ void dumpAST(struct ASTnode *n, int label, int level)
         return;
     case A_WHILE:
         Lstart = gendumplabel();
-        for (int i = 0; i < level; i++)
+        for (i = 0; i < level; i++)
             fprintf(stdout, " ");
         fprintf(stdout, "A_WHILE, start L%d\n", Lstart);
         Lend = gendumplabel();
@@ -99,7 +99,7 @@ void dumpAST(struct ASTnode *n, int label, int level)
     if (n->right)
         dumpAST(n->right, NOLABEL, level + 2);
 
-    for (int i = 0; i < level; i++)
+    for (i = 0; i < level; i++)
         fprintf(stdout, " ");
     switch (n->op)
     {

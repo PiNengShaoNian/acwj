@@ -2,13 +2,13 @@
 #include "data.h"
 #include "decl.h"
 
-// Convert a token into an AST operation.
-// We rely on a 1:1 mapping from token to AST operation.
-int binastop(int tokentype)
+// Convert a binary operator token into a binary AST operation.
+// We rely on a 1:1 mapping from token to AST operation
+static int binastop(int tokentype)
 {
-    if (tokentype > T_EOF && tokentype <= T_SLASH)
+    if (tokentype > T_EOF && tokentype <= T_MOD)
         return (tokentype);
-    fatald("Syntax error, token", tokentype);
+    fatals("Syntax error, token", Tstring[tokentype]);
     return (0); // Keep -Wall happy
 }
 
@@ -81,7 +81,7 @@ struct ASTnode *funccall(void)
 
     // Get the ')'
     rparen();
-    return tree;
+    return (tree);
 }
 
 // Parse the index into an array and return an AST tree for it
@@ -321,7 +321,7 @@ static struct ASTnode *primary(int ptp)
 
     // Scan in the next token and return the leaf node
     scan(&Token);
-    return n;
+    return (n);
 }
 
 // Parse a postfix expression and return
@@ -502,7 +502,8 @@ static int rightassoc(int tokentype)
 // match up with the order of tokens in defs.h
 static int OpPrec[] = {
     0, 10, 10,      // T_EOF, T_ASSIGN, T_ASPLUS,
-    10, 10, 10,     // T_ASMINUS, T_ASSTAR, T_ASSLASH,
+    10, 10,         // T_ASMINUS, T_ASSTAR,
+    10, 10,         // T_ASSLASH, T_ASMOD,
     15,             // T_QUESTION,
     20, 30,         // T_LOGOR, T_LOGAND
     40, 50, 60,     // T_OR, T_XOR, T_AMPER
@@ -510,19 +511,20 @@ static int OpPrec[] = {
     80, 80, 80, 80, // T_LT, T_GT, T_LE, T_GE
     90, 90,         // T_LSHIFT, T_RSHIFT
     100, 100,       // T_PLUS, T_MINUS
-    110, 110        // T_STAR, T_SLASH
+    110, 110, 110   // T_STAR, T_SLASH, T_MOD
 };
 
-// Check that we have a binary operator and return its precedence.
+// Check that we have a binary operator and
+// return its precedence.
 static int op_precedence(int tokentype)
 {
     int prec;
-    if (tokentype >= T_VOID)
-        fatald("Token with no precedence in op_precedence:", tokentype);
+    if (tokentype > T_MOD)
+        fatals("Token with no precedence in op_precedence:", Tstring[tokentype]);
     prec = OpPrec[tokentype];
     if (prec == 0)
-        fatald("op_precedence: Syntax error, token", tokentype);
-    return prec;
+        fatals("Syntax error, token", Tstring[tokentype]);
+    return (prec);
 }
 
 // Return an AST tree whose root is a binary operator.
