@@ -871,7 +871,7 @@ int typedef_declaration(struct symtable **ctype)
     type = parse_stars(type);
 
     // It does't exist so add it to the typedef list
-    addtypedef(Text, type, *ctype, 0, 0);
+    addtypedef(Text, type, *ctype);
     scan(&Token);
     return (type);
 }

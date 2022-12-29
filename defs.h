@@ -6,8 +6,8 @@
 
 // Commands and default filenames
 #define AOUT "a.out"
-#define ASCMD "as -o "
-#define LDCMD "cc -o "
+#define ASCMD "as -g -o "
+#define LDCMD "cc -g -o "
 #define CPPCMD "cpp -nostdinc -isystem "
 
 #ifndef INCDIR

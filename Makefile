@@ -27,10 +27,20 @@ install: cwj
 	chmod +x $(BINDIR)/cwj
 
 clean:
-	rm -f cwj cwjarm *.o *.s out a.out incdir.h
+	rm -f cwj cwj0 cwj1 cwjarm *.o *.s out a.out incdir.h
 
 test: install tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)
 
 armtest: cwjarm tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)
+
+# Try to do the triple test
+triple: cwj1
+	size cwj[01]
+
+cwj1: cwj0 $(SRCS) $(HSRCS)
+	./cwj0 -o cwj1 $(SRCS)
+
+cwj0: install $(SRCS) $(HSRCS)
+	./cwj  -o cwj0 $(SRCS)

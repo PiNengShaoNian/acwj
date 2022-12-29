@@ -136,10 +136,9 @@ struct symtable *addenum(char *name, int class, int value)
 }
 
 // Add a typedef to the typedef list
-struct symtable *addtypedef(char *name, int type, struct symtable *ctype,
-                            int stype, int size)
+struct symtable *addtypedef(char *name, int type, struct symtable *ctype)
 {
-    struct symtable *sym = newsym(name, type, ctype, stype, C_TYPEDEF, size, 0);
+    struct symtable *sym = newsym(name, type, ctype, 0, C_TYPEDEF, 0, 0);
     appendsym(&Typehead, &Typetail, sym);
     return (sym);
 }
@@ -254,6 +253,9 @@ void clear_symtable(void)
     Parmhead = Parmtail = NULL;
     Membhead = Membtail = NULL;
     Structhead = Structtail = NULL;
+    Unionhead = Uniontail = NULL;
+    Enumhead = Enumtail = NULL;
+    Typehead = Typetail = NULL;
 }
 
 // Remove all static symbols from the global symbol table

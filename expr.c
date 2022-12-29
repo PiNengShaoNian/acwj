@@ -412,6 +412,7 @@ struct ASTnode *prefix(int ptp)
         // recursively as a prefix expression
         scan(&Token);
         tree = prefix(ptp);
+        tree->rvalue = 1;
 
         // Ensure the tree's type is a pointer
         if (!ptrtype(tree->type))

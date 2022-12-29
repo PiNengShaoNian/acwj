@@ -98,9 +98,9 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
         // set one to 1 or 0 based on the comparison.
         if (parentASTop == A_IF || parentASTop == A_WHILE ||
             parentASTop == A_TERNARY)
-            return (cgcompare_and_jump(n->op, leftreg, rightreg, iflabel));
+            return (cgcompare_and_jump(n->op, leftreg, rightreg, iflabel, n->left->type));
         else
-            return (cgcompare_and_set(n->op, leftreg, rightreg));
+            return (cgcompare_and_set(n->op, leftreg, rightreg, n->left->type));
     case A_STRLIT:
         return (cgloadglobstr(n->a_intvalue));
     case A_INTLIT:
@@ -153,6 +153,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
         {
         case A_IDENT:
             if (n->right->sym->class == C_GLOBAL ||
+                n->right->sym->class == C_EXTERN ||
                 n->right->sym->class == C_STATIC)
                 return (cgstorglob(leftreg, n->right->sym));
             else
