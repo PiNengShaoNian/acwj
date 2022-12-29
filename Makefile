@@ -27,10 +27,15 @@ install: cwj
 	chmod +x $(BINDIR)/cwj
 
 clean:
-	rm -f cwj cwj0 cwj1 cwjarm *.o *.s out a.out incdir.h
+	rm -f cwj cwj[0-9] cwjarm *.o *.s out a.out incdir.h
 
 test: install tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)
+
+# Run the tests with the
+# compiler that compiled itself
+test0: install tests/runtests0 cwj0
+	(cd tests; chmod +x runtests0; ./runtests0)
 
 armtest: cwjarm tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)
@@ -38,6 +43,13 @@ armtest: cwjarm tests/runtests
 # Try to do the triple test
 triple: cwj1
 	size cwj[01]
+
+# Paranoid: quadruple test
+quad: cwj2
+	size cwj[012]
+
+cwj2: cwj1 $(SRCS) $(HSRCS)
+	./cwj1 -o cwj2 $(SRCS)
 
 cwj1: cwj0 $(SRCS) $(HSRCS)
 	./cwj0 -o cwj1 $(SRCS)

@@ -459,7 +459,7 @@ static int gen_ternary(struct ASTnode *n)
     // Generate the condition code followed
     // by a jump to the false label
     genAST(n->left, Lfalse, NOLABEL, NOLABEL, n->op);
-    genfreeregs(NOREG);
+    // genfreeregs(NOREG);
 
     // Get a register to hold the result of the two expressions
     reg = alloc_register();
@@ -469,7 +469,7 @@ static int gen_ternary(struct ASTnode *n)
     expreg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
     cgmove(expreg, reg);
     // Don't free the register holding the result, though!
-    genfreeregs(reg);
+    cgfreereg(expreg);
     cgjump(Lend);
     cglabel(Lfalse);
 
@@ -477,8 +477,7 @@ static int gen_ternary(struct ASTnode *n)
     // Move the expression result into the known register.
     expreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
     cgmove(expreg, reg);
-    // Don't free the register holding the result, though!
-    genfreeregs(reg);
+    cgfreereg(expreg);
     cglabel(Lend);
     return (reg);
 }

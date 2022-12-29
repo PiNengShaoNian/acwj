@@ -37,6 +37,7 @@ int cgalign(int type, int offset, int direction);
 void cgdataseg();
 int alloc_register(void);
 void freeall_registers(int keepreg);
+void cgfreereg(int reg);
 void spill_all_regs(void);
 void cgpreamble();
 void cgpostamble();

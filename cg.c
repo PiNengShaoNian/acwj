@@ -146,25 +146,24 @@ int alloc_register(void)
 
 // Return a register to the list of available registers.
 // Check to see if it's not already there.
-static void free_register(int reg)
+void cgfreereg(int reg)
 {
     if (freereg[reg] != 0)
     {
-        fprintf(Outfile, "# error trying to free register %s\n", reglist[reg]);
+        // fprintf(Outfile, "# error trying to free register %s\n", reglist[reg]);
         fatald("Error trying to free register", reg);
     }
-
     // If this was a spilled register, get it back
     if (spillreg > 0)
     {
         spillreg--;
         reg = (spillreg % NUMFREEREGS);
-        fprintf(Outfile, "# unspilling reg %d\n", reg);
+        // fprintf(Outfile, "# unspilling reg %s\n", reglist[reg]);
         popreg(reg);
     }
     else
     {
-        fprintf(Outfile, "# freeing reg %s\n", reglist[reg]);
+        // fprintf(Outfile, "# freeing reg %s\n", reglist[reg]);
         freereg[reg] = 1;
     }
 }
@@ -402,7 +401,7 @@ int cgloadvar(struct symtable *sym, int op)
             break;
         }
         // and free the register
-        free_register(postreg);
+        cgfreereg(postreg);
     }
 
     // Return the register with the value
@@ -500,7 +499,7 @@ void cgglobsym(struct symtable *node)
 int cgadd(int r1, int r2)
 {
     fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r2], reglist[r1]);
-    free_register(r2);
+    cgfreereg(r2);
     return (r1);
 }
 
@@ -509,7 +508,7 @@ int cgadd(int r1, int r2)
 int cgsub(int r1, int r2)
 {
     fprintf(Outfile, "\tsubq\t%s, %s\n", reglist[r2], reglist[r1]);
-    free_register(r2);
+    cgfreereg(r2);
     return (r1);
 }
 
@@ -518,7 +517,7 @@ int cgsub(int r1, int r2)
 int cgmul(int r1, int r2)
 {
     fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r2], reglist[r1]);
-    free_register(r2);
+    cgfreereg(r2);
     return (r1);
 }
 
@@ -533,7 +532,7 @@ int cgdivmod(int r1, int r2, int op)
         fprintf(Outfile, "\tmovq\t%%rax,%s\n", reglist[r1]);
     else
         fprintf(Outfile, "\tmovq\t%%rdx,%s\n", reglist[r1]);
-    free_register(r2);
+    cgfreereg(r2);
     return (r1);
 }
 
@@ -563,7 +562,7 @@ int cgcompare_and_set(int ASTop, int r1, int r2, int type)
     }
     fprintf(Outfile, "\t%s\t%s\n", cmplist[ASTop - A_EQ], breglist[r2]);
     fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r2], reglist[r2]);
-    free_register(r1);
+    cgfreereg(r1);
     return (r2);
 }
 
@@ -604,7 +603,8 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label, int type)
         fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
     }
     fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
-    freeall_registers(NOREG);
+    cgfreereg(r1);
+    cgfreereg(r2);
     return (NOREG);
 }
 
@@ -790,21 +790,21 @@ int cgloadglobstr(int label)
 int cgand(int r1, int r2)
 {
     fprintf(Outfile, "\tandq\t%s, %s\n", reglist[r2], reglist[r1]);
-    free_register(r2);
+    cgfreereg(r2);
     return (r1);
 }
 
 int cgor(int r1, int r2)
 {
     fprintf(Outfile, "\torq\t%s, %s\n", reglist[r2], reglist[r1]);
-    free_register(r2);
+    cgfreereg(r2);
     return (r1);
 }
 
 int cgxor(int r1, int r2)
 {
     fprintf(Outfile, "\txorq\t%s, %s\n", reglist[r2], reglist[r1]);
-    free_register(r2);
+    cgfreereg(r2);
     return (r1);
 }
 
@@ -826,7 +826,7 @@ int cgshl(int r1, int r2)
 {
     fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
     fprintf(Outfile, "\tshlq\t%%cl, %s\n", reglist[r1]);
-    free_register(r2);
+    cgfreereg(r2);
     return (r1);
 }
 
@@ -834,7 +834,7 @@ int cgshr(int r1, int r2)
 {
     fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
     fprintf(Outfile, "\tshrq\t%%cl, %s\n", reglist[r1]);
-    free_register(r2);
+    cgfreereg(r2);
     return (r1);
 }
 
@@ -924,7 +924,7 @@ void cgcopyarg(int r, int argposn)
         fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r],
                 reglist[FIRSTPARAMREG - argposn + 1]);
     }
-    free_register(r);
+    cgfreereg(r);
 }
 
 // Generate a switch jump table and the code to
