@@ -177,7 +177,13 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
         cgreturn(leftreg, Functionid);
         return (NOREG);
     case A_ADDR:
-        return (cgaddress(n->sym));
+        // If we have a symbol, get its address. Otherwise,
+        // the left register already has the address because
+        // it's a member access
+        if (n->sym != NULL)
+            return (cgaddress(n->sym));
+        else
+            return (leftreg);
     case A_SCALE:
         // Small optimisation: use shift if the
         // scale value is a known power of two
